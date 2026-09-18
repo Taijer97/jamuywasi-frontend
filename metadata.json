@@ -1,0 +1,6 @@
+{
+  "name": "Catálogo SaaS & WhatsApp Commerce",
+  "description": "Plataforma SaaS de catálogos digitales con cierre de ventas por WhatsApp, gestión de suscripciones, panel de control de productos y reportes de métricas mensuales.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
