@@ -6,18 +6,18 @@ import { HomeDashboard } from './components/Home/HomeDashboard';
 import { MarketplaceDashboard } from './components/Marketplace/MarketplaceDashboard';
 import { CatalogView } from './components/Catalog/CatalogView';
 import { AccessDeniedView } from './components/Auth/AccessDeniedView';
-import { AuthModal } from './components/Auth/AuthModal';
-import { ChangePinModal } from './components/Auth/ChangePinModal';
-import { ProductModal } from './components/Catalog/ProductModal';
-import { CartDrawer } from './components/Catalog/CartDrawer';
 import { FloatingCartButton } from './components/Catalog/FloatingCartButton';
-import { OrderSuccessModal } from './components/Catalog/OrderSuccessModal';
 import { LiveNotificationToast } from './components/Common/LiveNotificationToast';
 import { MessageCircle, Store, ShieldCheck, Heart, Loader2 } from 'lucide-react';
 
 // Lazy loaded heavy administrative and secondary views
 const MerchantDashboard = lazy(() => import('./components/Merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
 const SaasAdminView = lazy(() => import('./components/SuperAdmin/SaasAdminView').then(m => ({ default: m.SaasAdminView })));
+const AuthModal = lazy(() => import('./components/Auth/AuthModal').then(m => ({ default: m.AuthModal })));
+const ChangePinModal = lazy(() => import('./components/Auth/ChangePinModal').then(m => ({ default: m.ChangePinModal })));
+const ProductModal = lazy(() => import('./components/Catalog/ProductModal').then(m => ({ default: m.ProductModal })));
+const CartDrawer = lazy(() => import('./components/Catalog/CartDrawer').then(m => ({ default: m.CartDrawer })));
+const OrderSuccessModal = lazy(() => import('./components/Catalog/OrderSuccessModal').then(m => ({ default: m.OrderSuccessModal })));
 const UserProfileModal = lazy(() => import('./components/Auth/UserProfileModal').then(m => ({ default: m.UserProfileModal })));
 const PendingApprovalModal = lazy(() => import('./components/Auth/PendingApprovalModal').then(m => ({ default: m.PendingApprovalModal })));
 const PlanPurchaseModal = lazy(() => import('./components/Subscription/PlanPurchaseModal').then(m => ({ default: m.PlanPurchaseModal })));
@@ -73,13 +73,14 @@ const AppContent: React.FC = () => {
 
       {/* Global Modals & Drawers */}
       <LiveNotificationToast />
-      <ProductModal />
-      <CartDrawer />
       <FloatingCartButton />
-      <OrderSuccessModal />
-      <AuthModal />
-      <ChangePinModal />
+      {/* Modales en carga diferida: se descargan después de mostrar la página, no bloquean el primer render */}
       <Suspense fallback={null}>
+        <ProductModal />
+        <CartDrawer />
+        <OrderSuccessModal />
+        <AuthModal />
+        <ChangePinModal />
         <UserProfileModal />
         <PendingApprovalModal
           isOpen={pendingApprovalModalOpen}

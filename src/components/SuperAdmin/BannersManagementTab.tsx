@@ -244,7 +244,7 @@ export const BannersManagementTab: React.FC = () => {
                   <div className="flex items-start sm:items-center gap-4 w-full md:w-auto">
                     {/* Thumbnail */}
                     <div className="relative w-20 h-16 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={banner.imageUrl || DEFAULT_STORE_BANNER}
                         alt={banner.title}
                         className="w-full h-full object-cover"
@@ -505,7 +505,7 @@ export const BannersManagementTab: React.FC = () => {
                 </div>
                 {imageUrl && (
                   <div className="relative rounded-xl overflow-hidden border border-neutral-200 aspect-[21/9] max-h-40 bg-neutral-100 flex items-center justify-center">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={imageUrl}
                       alt="Vista previa del banner"
                       className="w-full h-full object-cover"

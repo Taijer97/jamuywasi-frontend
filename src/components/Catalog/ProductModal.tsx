@@ -291,7 +291,7 @@ export const ProductModal: React.FC = () => {
           `}</style>
 
           {/* Ambient subtle blur in background for smooth aesthetic */}
-          <img
+          <img loading="lazy" decoding="async"
             src={displayedImage}
             alt=""
             aria-hidden="true"
@@ -301,7 +301,7 @@ export const ProductModal: React.FC = () => {
           {/* Background Layer: previous image during transition */}
           {previousImage && (
             <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8 pointer-events-none">
-              <img
+              <img loading="lazy" decoding="async"
                 src={previousImage}
                 alt=""
                 aria-hidden="true"
@@ -312,7 +312,7 @@ export const ProductModal: React.FC = () => {
 
           {/* Foreground Layer: active product image (perfectly contained, regulated, no clipping/overflow) */}
           <div className="relative z-10 w-full h-full flex items-center justify-center pointer-events-none">
-            <img
+            <img loading="lazy" decoding="async"
               key={displayedImage}
               src={displayedImage}
               alt={product.name}
@@ -348,7 +348,7 @@ export const ProductModal: React.FC = () => {
                 const productStore = stores.find(s => s.id === product.storeId) || currentStore;
                 return productStore ? (
                   <div className="flex items-center gap-2 min-w-0">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={productStore.logo || DEFAULT_STORE_LOGO}
                       alt={productStore.name}
                       className="w-6 h-6 rounded-lg object-cover border border-neutral-200 shadow-3xs shrink-0"
@@ -448,7 +448,7 @@ export const ProductModal: React.FC = () => {
                             }`}
                           >
                             {optImage && (
-                              <img
+                              <img loading="lazy" decoding="async"
                                 src={optImage}
                                 alt={optName}
                                 className={`w-4 h-4 rounded-md object-cover border border-black/10 shrink-0 bg-neutral-100 ${

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import confetti from 'canvas-confetti';
+import { fireConfetti as confetti } from '../utils/confetti';
 import {
   StoreConfig,
   Product,
@@ -32,15 +32,15 @@ import { audioNotification } from '../utils/audioNotification';
 const DEFAULT_YAPE_CONFIG: YapePaymentConfig = {
   phone: '925763903',
   phoneFormatted: '+51 925 763 903',
-  holder: 'Super Administrador - SaaS Catálogo',
-  qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/51925763903?text=Pago%20Yape%20SaaS%20Atalaya%20Store',
+  holder: 'JamuyWasi',
+  qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/51925763903?text=Pago%20Yape%20JamuyWasi',
   instructions: 'Abona el monto exacto por Yape o Plin. Luego ingresa el código de aprobación de 3 dígitos para verificación y activación inmediata de tu tienda.'
 };
 
 const DEFAULT_FALLBACK_STORE: StoreConfig = {
   id: '',
-  name: 'Atalaya Store',
-  slug: 'atalaya-store',
+  name: 'JamuyWasi',
+  slug: 'jamuywasi',
   tagline: 'Catálogo de productos exclusivo por WhatsApp',
   description: 'Consulta nuestros productos y haz tu pedido en WhatsApp.',
   logo: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=300&auto=format&fit=crop&q=80',
@@ -62,7 +62,7 @@ const DEFAULT_FALLBACK_STORE: StoreConfig = {
 const DEFAULT_FALLBACK_USER: UserAccount = {
   id: 'usr_guest',
   name: 'Invitado',
-  email: 'invitado@atalayastore.com',
+  email: 'invitado@jamuywasi.com',
   role: 'merchant',
   storeId: '',
   subscription: {

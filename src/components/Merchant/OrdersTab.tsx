@@ -306,7 +306,7 @@ export const OrdersTab: React.FC = () => {
                     <div key={idx} className="p-3 flex items-center justify-between gap-3 bg-white">
                       <div className="flex items-center gap-2.5">
                         {item.imageUrl && (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={item.imageUrl}
                             alt={item.productName}
                             className="w-10 h-10 rounded-lg object-cover bg-neutral-100"

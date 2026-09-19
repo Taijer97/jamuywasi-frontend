@@ -6,6 +6,18 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // React cambia poco: en su propio archivo el navegador lo reutiliza entre despliegues
+          manualChunks(id: string) {
+            if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) {
+              return 'vendor-react';
+            }
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -23,7 +35,7 @@ export default defineConfig(() => {
           ws: true,
         },
       },
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // HMR se puede desactivar con la variable de entorno DISABLE_HMR=true.
       // Do not modifyâ€”file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.

@@ -158,7 +158,7 @@ export const MerchantDashboard: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl overflow-hidden bg-white p-0.5 border border-neutral-200 shadow-xs shrink-0">
-              <img
+              <img loading="lazy" decoding="async"
                 src={currentStore.logo || DEFAULT_STORE_LOGO}
                 alt={currentStore.name}
                 className="w-full h-full object-cover rounded-xl"

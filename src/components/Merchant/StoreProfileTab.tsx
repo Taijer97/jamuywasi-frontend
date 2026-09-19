@@ -83,7 +83,7 @@ export const StoreProfileTab: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `🛍️ ¡Hola! Te invito a visitar nuestra tienda oficial *${form.name}* en Atalaya Store:\n${storePublicUrl}\n¡Haz tu pedido directo por WhatsApp!`
+      `🛍️ ¡Hola! Te invito a visitar nuestra tienda oficial *${form.name}* en JamuyWasi:\n${storePublicUrl}\n¡Haz tu pedido directo por WhatsApp!`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -534,7 +534,7 @@ export const StoreProfileTab: React.FC = () => {
                   className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
                 {form.logo && (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={form.logo}
                     alt="Logo preview"
                     className="w-8 h-8 rounded-lg object-cover border border-neutral-200"
@@ -1235,7 +1235,7 @@ export const StoreProfileTab: React.FC = () => {
               {/* Card visual demo (Simulating StoreCard in Home) */}
               <div className="border border-neutral-200/90 rounded-3xl overflow-hidden shadow-md bg-white">
                 <div className="relative h-32 w-full overflow-hidden bg-neutral-900">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={form.banner || DEFAULT_STORE_BANNER}
                     alt={form.name}
                     className="w-full h-full object-cover opacity-80"
@@ -1271,7 +1271,7 @@ export const StoreProfileTab: React.FC = () => {
 
                 <div className="p-4 pt-0 -mt-7 relative">
                   <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white p-0.5 shadow-md border-2 border-white mb-2">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={form.logo || DEFAULT_STORE_LOGO}
                       alt={form.name}
                       className="w-full h-full object-cover rounded-xl"

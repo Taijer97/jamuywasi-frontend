@@ -11,17 +11,17 @@ export interface PaymentAccount {
 
 export const SUPER_ADMIN_CONFIG = {
   name: 'Super Administrador',
-  role: 'Super Administrador SaaS Catálogo Perú',
+  role: 'Super Administrador JamuyWasi',
   phone: '51925763903',
   phoneFormatted: '+51 925 763 903',
-  email: 'admin@saascatalogo.pe',
+  email: 'admin@jamuywasi.com',
   paymentAccounts: [
     {
       id: 'yape_plin',
       name: 'Yape / Plin',
       type: 'yape_plin',
       accountNumber: '925 763 903',
-      holder: 'Super Administrador - SaaS Catálogo',
+      holder: 'JamuyWasi',
       badge: 'Pago Inmediato',
       instructions: 'Envía tu pago por Yape o Plin al número indicado e incluye tu comprobante.'
     },
@@ -30,7 +30,7 @@ export const SUPER_ADMIN_CONFIG = {
       name: 'Banco BCP Soles',
       type: 'bank_transfer',
       accountNumber: '193-98765432-0-12',
-      holder: 'SaaS Catálogo Perú S.A.C.',
+      holder: 'JamuyWasi',
       cci: '002-193-009876543201-14',
       badge: 'Transferencia Directa',
       instructions: 'Transferencias desde BCP o interbancarias inmediatas con CCI.'
@@ -40,7 +40,7 @@ export const SUPER_ADMIN_CONFIG = {
       name: 'Banco BBVA Soles',
       type: 'bank_transfer',
       accountNumber: '0011-0123-0200987654',
-      holder: 'SaaS Catálogo Perú S.A.C.',
+      holder: 'JamuyWasi',
       cci: '011-123-000200987654-25',
       badge: 'Transferencia BBVA',
       instructions: 'Acepta depósitos en agente BBVA o banca por internet.'

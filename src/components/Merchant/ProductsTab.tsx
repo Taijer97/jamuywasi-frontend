@@ -505,7 +505,7 @@ export const ProductsTab: React.FC = () => {
                 <tr key={product.id} className="hover:bg-neutral-50/50 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={product.imageUrl || DEFAULT_PRODUCT_IMAGE}
                         alt={product.name}
                         className="w-11 h-11 rounded-lg object-cover bg-neutral-100 shrink-0"
@@ -750,7 +750,7 @@ export const ProductsTab: React.FC = () => {
                     className="flex-1 px-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                   {imageUrl && (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={imageUrl}
                       alt="Preview"
                       className="w-9 h-9 rounded-lg object-cover border border-neutral-200"
@@ -946,7 +946,7 @@ export const ProductsTab: React.FC = () => {
                                   {/* Preview miniatura */}
                                   {opt.imageUrl ? (
                                     <div className="relative group/preview shrink-0">
-                                      <img
+                                      <img loading="lazy" decoding="async"
                                         src={opt.imageUrl}
                                         alt={opt.name || 'preview'}
                                         className="w-8 h-8 rounded-lg object-cover border border-neutral-300 shadow-2xs"
@@ -1171,7 +1171,7 @@ export const ProductsTab: React.FC = () => {
                                 {/* Preview / Image */}
                                 {comb.imageUrl ? (
                                   <div className="relative group/combimg shrink-0">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                       src={comb.imageUrl}
                                       alt="comb"
                                       className="w-7 h-7 rounded-lg object-cover border border-neutral-300"

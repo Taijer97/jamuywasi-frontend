@@ -235,7 +235,7 @@ export const CartDrawer: React.FC = () => {
                       return (
                         <div key={item.id} className="py-3 flex items-start gap-3">
                           <div className="w-14 h-14 rounded-xl bg-neutral-50/90 border border-neutral-200/70 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                            <img
+                            <img loading="lazy" decoding="async"
                               src={displayImg}
                               alt={item.product.name}
                               className="max-w-full max-h-full w-auto h-auto object-contain"

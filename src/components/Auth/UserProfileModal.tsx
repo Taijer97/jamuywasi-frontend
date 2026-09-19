@@ -561,7 +561,7 @@ export const UserProfileModal: React.FC = () => {
                 <div className="p-4 rounded-xl border border-neutral-200 bg-white shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={currentStore.logo || DEFAULT_STORE_LOGO}
                         alt={currentStore.name}
                         className="w-10 h-10 rounded-xl object-cover border border-neutral-200"
@@ -615,7 +615,7 @@ export const UserProfileModal: React.FC = () => {
                     <span>Permisos de SuperAdministrador</span>
                   </p>
                   <p className="text-[11px] text-purple-800 leading-relaxed">
-                    Tienes acceso irrestricto a todas las tiendas de la red Atalaya Store, control total de métricas SaaS, autorización de nuevos comercios y gestión de cuentas.
+                    Tienes acceso irrestricto a todas las tiendas de la red JamuyWasi, control total de métricas SaaS, autorización de nuevos comercios y gestión de cuentas.
                   </p>
                 </div>
               )}

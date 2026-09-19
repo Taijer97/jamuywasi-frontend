@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { UserAccount, StoreConfig, PlanTier } from '../../types';
 import { SAAS_PLANS, STORE_CATEGORIES } from '../../data/initialData';
 import { api } from '../../services/api';
-import confetti from 'canvas-confetti';
+import { fireConfetti as confetti } from '../../utils/confetti';
 import {
   Store,
   Crown,
@@ -293,7 +293,7 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
                   >
                     <div className="flex items-start gap-3.5 min-w-0">
                       <div className="relative shrink-0">
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={store.logo || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=120&auto=format&fit=crop&q=80'}
                           alt={store.name}
                           className="w-12 h-12 rounded-xl object-cover border border-neutral-200 bg-neutral-100 shadow-2xs"

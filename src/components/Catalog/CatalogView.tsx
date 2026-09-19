@@ -240,7 +240,7 @@ export const CatalogView: React.FC = () => {
                           <div className={`w-16 h-16 rounded-2xl overflow-hidden bg-white p-1 shadow-md border-2 border-white ring-2 transition-all ${
                             isOwnStore ? 'ring-emerald-500' : 'ring-emerald-500/20 group-hover:ring-emerald-500/50'
                           }`}>
-                            <img
+                            <img loading="lazy" decoding="async"
                               src={store.logo || DEFAULT_STORE_LOGO}
                               alt={store.name}
                               className="w-full h-full object-cover rounded-xl"
@@ -404,7 +404,7 @@ export const CatalogView: React.FC = () => {
           </div>
           <div className="pt-2 flex flex-col gap-2">
             <a
-              href="https://wa.me/51325763903?text=Hola%20SuperAdmin,%20deseo%20autorizar%20mi%20tienda%20en%20Atalaya%20Store"
+              href="https://wa.me/51325763903?text=Hola%20SuperAdmin,%20deseo%20autorizar%20mi%20tienda%20en%20JamuyWasi"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"

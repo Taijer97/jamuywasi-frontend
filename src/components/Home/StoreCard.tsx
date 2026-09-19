@@ -80,7 +80,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, productCount }) => 
           {/* Store Logo Avatar */}
           <div className="relative inline-block mb-3">
             <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white p-1 shadow-md border-2 border-white ring-2 ring-emerald-500/20 group-hover:ring-emerald-500/50 transition-all">
-              <img 
+              <img loading="lazy" decoding="async" 
                 src={store.logo || DEFAULT_STORE_LOGO} 
                 alt={store.name} 
                 className="w-full h-full object-cover rounded-xl"

@@ -63,7 +63,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     >
       {/* Background Image with Gradient Overlay */}
       <div className="absolute inset-0 z-0">
-        <img
+        <img loading="lazy" decoding="async"
           src={meta.image}
           alt={name}
           className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"

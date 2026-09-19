@@ -55,7 +55,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
         {store && (
           <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10">
             <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg bg-white/95 backdrop-blur-md shadow-xs border border-neutral-200/60 max-w-[110px] sm:max-w-[170px]">
-              <img
+              <img loading="lazy" decoding="async"
                 src={store.logo || DEFAULT_STORE_LOGO}
                 alt={store.name}
                 className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full object-cover shrink-0"

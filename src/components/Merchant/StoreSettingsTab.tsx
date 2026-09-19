@@ -742,7 +742,7 @@ export const StoreSettingsTab: React.FC = () => {
               <div className="rounded-3xl border-4 border-neutral-800 bg-[#E5DDD5] overflow-hidden shadow-xl max-w-sm mx-auto">
                 {/* Simulated Phone Top Header */}
                 <div className="bg-[#075E54] text-white px-4 py-2.5 flex items-center gap-3">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={form.logo || DEFAULT_STORE_LOGO}
                     alt={form.name}
                     className="w-8 h-8 rounded-full object-cover border border-white/40"

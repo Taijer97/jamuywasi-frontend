@@ -337,7 +337,7 @@ export const ReportsTab: React.FC = () => {
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
                       {prod.imageUrl && (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={prod.imageUrl}
                           alt={prod.name}
                           className="w-9 h-9 rounded-lg object-cover bg-neutral-100"

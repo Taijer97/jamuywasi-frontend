@@ -244,7 +244,7 @@ export const AuthModal: React.FC = () => {
             <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
               <Store className="w-4 h-4 text-white" />
             </div>
-            <span className="font-black text-neutral-900 text-sm">Atalaya Store</span>
+            <span className="font-black text-neutral-900 text-sm">JamuyWasi</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-neutral-100 rounded-lg p-0.5 gap-0.5 text-xs font-semibold">
@@ -700,7 +700,7 @@ export const AuthModal: React.FC = () => {
                     <div>
                       <h4 className="font-bold text-neutral-900">1. Marco Legal y Naturaleza del Servicio</h4>
                       <p className="mt-1 text-neutral-600">
-                        El presente Contrato Electrónico de Software como Servicio (SaaS) regula el alta, acceso y uso de la plataforma multitienda <b>Atalaya Store</b>. La aceptación electrónica del presente instrumento se suscribe válidamente con arreglo al artículo 141-A del <b>Código Civil Peruano</b>, la <b>Ley N° 27269 (Ley de Firmas y Certificados Digitales)</b> y su Reglamento, ostentando plena eficacia jurídica y validez probatoria entre las partes.
+                        El presente Contrato Electrónico de Software como Servicio (SaaS) regula el alta, acceso y uso de la plataforma multitienda <b>JamuyWasi</b>. La aceptación electrónica del presente instrumento se suscribe válidamente con arreglo al artículo 141-A del <b>Código Civil Peruano</b>, la <b>Ley N° 27269 (Ley de Firmas y Certificados Digitales)</b> y su Reglamento, ostentando plena eficacia jurídica y validez probatoria entre las partes.
                       </p>
                     </div>
 
@@ -714,21 +714,21 @@ export const AuthModal: React.FC = () => {
                     <div>
                       <h4 className="font-bold text-neutral-900">3. Protección y Tratamiento de Datos Personales (Ley N° 29733)</h4>
                       <p className="mt-1 text-neutral-600">
-                        En observancia obligatoria de la <b>Ley N° 29733 (Ley de Protección de Datos Personales)</b> y el <b>D.S. N° 003-2013-JUS</b>, El Titular otorga su <b>consentimiento previo, libre, expreso, informado e inequívoco</b> para la recopilación y tratamiento automatizado de sus datos personales. Dicha información será utilizada exclusivamente para la gestión de su cuenta en Atalaya Store, administración de catálogos digitales, soporte técnico, facturación y notificaciones de servicio. El Titular podrá ejercitar en cualquier momento sus <b>derechos ARCO</b> (Acceso, Rectificación, Cancelación y Oposición) ante el soporte de la plataforma.
+                        En observancia obligatoria de la <b>Ley N° 29733 (Ley de Protección de Datos Personales)</b> y el <b>D.S. N° 003-2013-JUS</b>, El Titular otorga su <b>consentimiento previo, libre, expreso, informado e inequívoco</b> para la recopilación y tratamiento automatizado de sus datos personales. Dicha información será utilizada exclusivamente para la gestión de su cuenta en JamuyWasi, administración de catálogos digitales, soporte técnico, facturación y notificaciones de servicio. El Titular podrá ejercitar en cualquier momento sus <b>derechos ARCO</b> (Acceso, Rectificación, Cancelación y Oposición) ante el soporte de la plataforma.
                       </p>
                     </div>
 
                     <div>
                       <h4 className="font-bold text-neutral-900">4. Cumplimiento Tributario y Emisión de Comprobantes (SUNAT)</h4>
                       <p className="mt-1 text-neutral-600">
-                        Atalaya Store presta un servicio estrictamente tecnológico de catálogo digital y facilitación de pedidos comerciales; no actúa como intermediario comercial, mandatario de ventas ni agente de retención. El Titular es el <b>único y exclusivo responsable tributario ante la Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT)</b> por la tributación de sus ventas y la emisión obligatoria de comprobantes de pago electrónicos de venta (boletas o facturas) a los clientes conforme a la normativa tributaria peruana.
+                        JamuyWasi presta un servicio estrictamente tecnológico de catálogo digital y facilitación de pedidos comerciales; no actúa como intermediario comercial, mandatario de ventas ni agente de retención. El Titular es el <b>único y exclusivo responsable tributario ante la Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT)</b> por la tributación de sus ventas y la emisión obligatoria de comprobantes de pago electrónicos de venta (boletas o facturas) a los clientes conforme a la normativa tributaria peruana.
                       </p>
                     </div>
 
                     <div>
                       <h4 className="font-bold text-neutral-900">5. Protección al Consumidor y Productos Permitidos (INDECOPI / DIGEMID)</h4>
                       <p className="mt-1 text-neutral-600">
-                        En cumplimiento del <b>Código de Protección y Defensa del Consumidor (Ley N° 29571)</b>, el comercio asume total responsabilidad frente a los compradores por la veracidad publicitaria, idoneidad, estado, garantía y entrega efectiva de los productos ofertados. Queda <b>terminantemente prohibido</b> ofertar productos robados, falsificados, de contrabando, adulterados, o medicamentos y cosméticos sin los correspondientes registros sanitarios emitidos por <b>DIGEMID, DIGESA o SENASA</b>. Atalaya Store dará de baja inmediata a cualquier comercio denunciado o presunto infractor sin lugar a resarcimiento.
+                        En cumplimiento del <b>Código de Protección y Defensa del Consumidor (Ley N° 29571)</b>, el comercio asume total responsabilidad frente a los compradores por la veracidad publicitaria, idoneidad, estado, garantía y entrega efectiva de los productos ofertados. Queda <b>terminantemente prohibido</b> ofertar productos robados, falsificados, de contrabando, adulterados, o medicamentos y cosméticos sin los correspondientes registros sanitarios emitidos por <b>DIGEMID, DIGESA o SENASA</b>. JamuyWasi dará de baja inmediata a cualquier comercio denunciado o presunto infractor sin lugar a resarcimiento.
                       </p>
                     </div>
 
@@ -754,7 +754,7 @@ export const AuthModal: React.FC = () => {
                     </div>
 
                     <div className="pt-2 text-center text-[10px] text-neutral-400 font-mono">
-                      --- Fin de los Términos y Condiciones Legales de Atalaya Store ---
+                      --- Fin de los Términos y Condiciones Legales de JamuyWasi ---
                     </div>
                   </div>
 

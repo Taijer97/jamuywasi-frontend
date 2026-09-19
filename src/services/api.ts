@@ -1070,7 +1070,7 @@ export const api = {
     return {
       phone: data.phone || '925763903',
       phoneFormatted: data.phone_formatted || '+51 925 763 903',
-      holder: data.holder || 'Super Administrador - SaaS Catálogo',
+      holder: data.holder || 'JamuyWasi',
       qrUrl: normalizeImageUrl(data.qr_url) || '',
       instructions: data.instructions || '',
       updatedAt: data.updated_at

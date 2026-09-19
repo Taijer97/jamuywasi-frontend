@@ -101,7 +101,7 @@ export function buildReactivationWhatsAppLink(
 ): string {
   const cleanPhone = targetPhone.replace(/\D/g, '');
   const message = [
-    '👋 Hola SuperAdministrador, necesito reactivar mi tienda en Atalaya Store / JamuyWasi.',
+    '👋 Hola SuperAdministrador, necesito reactivar mi tienda en JamuyWasi.',
     '',
     `🏪 *Tienda:* ${storeName}`,
     `👤 *Titular:* ${merchantName}`,

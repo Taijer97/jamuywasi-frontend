@@ -682,7 +682,7 @@ export const UserManagementTab: React.FC = () => {
                                 <div className="flex -space-x-1.5 overflow-hidden shrink-0">
                                   {userStores.length > 0 ? (
                                     userStores.slice(0, 3).map((st) => (
-                                      <img
+                                      <img loading="lazy" decoding="async"
                                         key={st.id}
                                         src={st.logo || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=100&auto=format&fit=crop&q=80'}
                                         alt={st.name}

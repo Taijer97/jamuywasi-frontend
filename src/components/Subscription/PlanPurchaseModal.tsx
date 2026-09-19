@@ -50,8 +50,8 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
 
   const yapeCleanPhone = (yapeConfig?.phone || '925763903').replace(/\D/g, '');
   const yapeDisplayPhone = yapeConfig?.phoneFormatted || `+51 ${yapeCleanPhone}`;
-  const yapeHolder = yapeConfig?.holder || 'Super Administrador - SaaS Catálogo';
-  const autoQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/51${yapeCleanPhone}?text=Pago%20Yape%20SaaS%20Atalaya%20Store`;
+  const yapeHolder = yapeConfig?.holder || 'JamuyWasi';
+  const autoQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/51${yapeCleanPhone}?text=Pago%20Yape%20JamuyWasi`;
   const yapeActiveQR = yapeConfig?.qrUrl?.trim() || autoQR;
   const yapeInstructions = yapeConfig?.instructions || '';
 
@@ -261,7 +261,7 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
 
     // Preparar mensaje de WhatsApp
     const lines = [
-      '🔔 *COMPROBANTE DE PAGO DE SUSCRIPCIÓN - ATALAYA STORE*',
+      '🔔 *COMPROBANTE DE PAGO DE SUSCRIPCIÓN - JAMUYWASI*',
       '----------------------------------------',
       `🏪 *Tienda:* ${storeName}`,
       `👤 *Comerciante:* ${merchantName}`,
@@ -735,7 +735,7 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
                     {/* QR Code Container */}
                     <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white text-center shadow-md">
                       <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-inner flex items-center justify-center overflow-hidden">
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={yapeActiveQR}
                           alt="QR Yape Pago"
                           className="w-full h-full object-contain"

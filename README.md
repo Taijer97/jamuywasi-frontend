@@ -1,4 +1,4 @@
-# Atalaya Store — Frontend SaaS (React + Vite + Tailwind v4)
+# JamuyWasi — Frontend SaaS (React + Vite + Tailwind v4)
 
 Aplicación web tipo marketplace multicuenta que integra 5 vistas principales: Landing/Home, Marketplace de catálogos, Tienda/Catálogo público con checkout directo a WhatsApp, Panel de Comerciante (Merchant Dashboard) y Panel de SuperAdministración SaaS.
 

@@ -544,7 +544,7 @@ export const SubscriptionTab: React.FC = () => {
               <div className="flex justify-between items-start border-b border-neutral-200 pb-5">
                 <div>
                   <h2 className="text-lg font-black tracking-tight text-neutral-900 flex items-center gap-1.5">
-                    <span className="text-emerald-700">ATALAYA</span> STORE
+                    <span className="text-emerald-700">Jamuy</span>Wasi
                   </h2>
                   <p className="text-xs text-neutral-500 mt-0.5">Plataforma SaaS de Catálogos Virtuales</p>
                   <p className="text-[11px] text-neutral-400 mt-1">R.U.C. 20608942183 • Lima, Perú</p>
@@ -616,7 +616,7 @@ export const SubscriptionTab: React.FC = () => {
                     <tr>
                       <td className="py-3 px-3">
                         <p className="font-bold text-neutral-900">
-                          Suscripción SaaS Catálogo - Plan {selectedInvoice.plan_name}
+                          Suscripción JamuyWasi - Plan {selectedInvoice.plan_name}
                         </p>
                         <p className="text-[11px] text-neutral-500 mt-0.5">
                           Activación de plataforma multitienda, catálogo WhatsApp, pasarela Yape y soporte.
@@ -640,7 +640,7 @@ export const SubscriptionTab: React.FC = () => {
                     <CheckCircle2 className="w-3.5 h-3.5" /> Estado: PAGADO & CONFORME
                   </span>
                   <p className="text-[10px] text-neutral-400 mt-1">
-                    Comprobante digital sin valor tributario directo emitido conforme a las políticas de Atalaya Store.
+                    Comprobante digital sin valor tributario directo emitido conforme a las políticas de JamuyWasi.
                   </p>
                 </div>
                 <div className="text-right shrink-0 bg-neutral-900 text-white px-4 py-2.5 rounded-xl">
