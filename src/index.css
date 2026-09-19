@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+/*
+ * Color de marca JamuyWasi: #236257 (verde del logo).
+ * Reemplaza la escala "emerald" de Tailwind, así todas las clases existentes
+ * (bg-emerald-600, text-emerald-700, border-emerald-200, ...) usan el verde de la marca
+ * sin tocar cada componente. Para cambiar el color de toda la app, edita solo estos valores.
+ */
+@theme {
+  --color-emerald-50: #ebfbf7;
+  --color-emerald-100: #d5f5ed;
+  --color-emerald-200: #b4e7dc;
+  --color-emerald-300: #87cebf;
+  --color-emerald-400: #57aa9a;
+  --color-emerald-500: #2e8576;
+  --color-emerald-600: #236257; /* color principal de la marca (botones) */
+  --color-emerald-700: #0a4f45;
+  --color-emerald-800: #083f36;
+  --color-emerald-900: #08302a;
+  --color-emerald-950: #031b16;
+
+  /* Alias para código nuevo: bg-brand, text-brand, border-brand */
+  --color-brand: #236257;
+}
+
+
 /* Scroll Snap and scrollbar utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

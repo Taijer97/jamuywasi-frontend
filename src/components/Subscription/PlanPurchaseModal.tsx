@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SAAS_PLANS } from '../../data/initialData';
-import { SUPER_ADMIN_CONFIG } from '../../data/saasPayments';
+import { getAdminWhatsApp } from '../../utils/subscriptionUtils';
 import { PlanTier, PromoCodeValidationResult, YapeVerifyResult } from '../../types';
 import { api } from '../../services/api';
 import {
@@ -49,9 +49,11 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
   const user = currentUser || effectiveUser;
 
   const yapeCleanPhone = (yapeConfig?.phone || '925763903').replace(/\D/g, '');
-  const yapeDisplayPhone = yapeConfig?.phoneFormatted || `+51 ${yapeCleanPhone}`;
+  // WhatsApp del SuperAdmin (SuperAdmin > Cobros & QR Yape)
+  const adminWhatsApp = getAdminWhatsApp(yapeConfig);
+  const yapeDisplayPhone = adminWhatsApp.display;
   const yapeHolder = yapeConfig?.holder || 'JamuyWasi';
-  const autoQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/51${yapeCleanPhone}?text=Pago%20Yape%20JamuyWasi`;
+  const autoQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/${adminWhatsApp.wa}?text=Pago%20Yape%20JamuyWasi`;
   const yapeActiveQR = yapeConfig?.qrUrl?.trim() || autoQR;
   const yapeInstructions = yapeConfig?.instructions || '';
 
@@ -280,7 +282,7 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
       '¡Muchas gracias!'
     ].filter(Boolean);
 
-    const fullAdminPhone = yapeCleanPhone.startsWith('51') ? yapeCleanPhone : `51${yapeCleanPhone}`;
+    const fullAdminPhone = adminWhatsApp.wa;
     const whatsappUrl = `https://wa.me/${fullAdminPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
 
     // Actualizar suscripción del usuario en estado pending_approval con detalles de comprobante
@@ -418,7 +420,7 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
                 <span>¿Qué sucede a continuación?</span>
               </div>
               <p className="text-[11px] text-amber-800/90 leading-relaxed">
-                El SuperAdministrador verificará tu comprobante en el número oficial <strong>+51 925 763 903</strong> y autorizará tu cuenta.
+                El SuperAdministrador verificará tu comprobante en el número oficial <strong>{yapeDisplayPhone}</strong> y autorizará tu cuenta.
               </p>
             </div>
 

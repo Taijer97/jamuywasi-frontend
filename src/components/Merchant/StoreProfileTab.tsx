@@ -618,7 +618,7 @@ export const StoreProfileTab: React.FC = () => {
           </div>
 
           {/* Card 2: Store Information */}
-          <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-xs p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-neutral-100">
               <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Store className="w-4 h-4" />
@@ -873,7 +873,7 @@ export const StoreProfileTab: React.FC = () => {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 mb-2">
                   <div>
                     <label className="block text-xs font-bold text-neutral-800">
                       Horarios de Atención al Cliente (Día por Día)
@@ -882,7 +882,7 @@ export const StoreProfileTab: React.FC = () => {
                       Configura cada día de la semana de forma independiente con múltiples horas de apertura y cierre.
                     </p>
                   </div>
-                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="self-start sm:self-auto shrink-0 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                     Visible en tu Catálogo
                   </span>
                 </div>
@@ -892,32 +892,34 @@ export const StoreProfileTab: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setScheduleMode('fixed')}
-                    className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 min-w-0 py-2 sm:py-1.5 px-2 sm:px-3 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       scheduleMode === 'fixed'
                         ? 'bg-white text-neutral-900 shadow-xs font-extrabold'
                         : 'text-neutral-500 hover:text-neutral-900'
                     }`}
                   >
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Días de la Semana & Horas de Abrir/Cerrar</span>
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="sm:hidden truncate">Por días y horas</span>
+                    <span className="hidden sm:inline">Días de la Semana & Horas de Abrir/Cerrar</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setScheduleMode('manual')}
-                    className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 min-w-0 py-2 sm:py-1.5 px-2 sm:px-3 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       scheduleMode === 'manual'
                         ? 'bg-white text-neutral-900 shadow-xs font-extrabold'
                         : 'text-neutral-500 hover:text-neutral-900'
                     }`}
                   >
-                    <Clock className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Escribir Manualmente</span>
+                    <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="sm:hidden truncate">Texto libre</span>
+                    <span className="hidden sm:inline">Escribir Manualmente</span>
                   </button>
                 </div>
 
                 {/* MODO ASISTENTE: DÍAS Y TURNOS INDEPENDIENTES */}
                 {scheduleMode === 'fixed' ? (
-                  <div className="bg-neutral-50/70 border border-neutral-200 rounded-2xl p-3.5 sm:p-4 space-y-4">
+                  <div className="bg-neutral-50/70 border border-neutral-200 rounded-2xl p-2.5 sm:p-4 space-y-4">
                     {/* Barra de Atajos Rápidos */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-200/70">
                       <div>
@@ -970,7 +972,7 @@ export const StoreProfileTab: React.FC = () => {
                         >
                           {/* Fila Encabezado del Día */}
                           <div className="p-3 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <span
                                 className={`w-10 h-8 rounded-lg flex flex-col items-center justify-center font-black text-[11px] uppercase tracking-wide border shadow-3xs ${
                                   day.isOpen
@@ -1044,46 +1046,61 @@ export const StoreProfileTab: React.FC = () => {
 
                           {/* Cuerpo de Horas de Abrir y Cerrar (Si está abierto) */}
                           {day.isOpen ? (
-                            <div className="px-3 pb-3 pt-0 space-y-2 border-t border-neutral-100">
+                            <div className="px-2 sm:px-3 pb-3 pt-0 space-y-2 border-t border-neutral-100">
                               <div className="pt-2 space-y-1.5">
                                 {day.slots.map((slot, sIdx) => (
                                   <div
                                     key={slot.id}
-                                    className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-neutral-50/90 border border-neutral-200/70"
+                                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 rounded-lg bg-neutral-50/90 border border-neutral-200/70"
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-bold text-neutral-500 bg-white px-2 py-0.5 rounded border border-neutral-200">
-                                        Turno {sIdx + 1}
-                                      </span>
-                                      <div className="flex items-center gap-1.5 text-xs">
-                                        <div className="flex items-center gap-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                                      {/* Turno N (+ papelera en móvil) */}
+                                      <div className="flex items-center justify-between sm:justify-start">
+                                        <span className="text-[10px] font-bold text-neutral-500 bg-white px-2 py-0.5 rounded border border-neutral-200 whitespace-nowrap">
+                                          Turno {sIdx + 1}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveSlotFromDay(day.dayId, slot.id)}
+                                          title="Eliminar este turno"
+                                          aria-label={`Eliminar turno ${sIdx + 1}`}
+                                          className="sm:hidden p-2 -m-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+
+                                      {/* Abre / Cierra: 2 columnas en móvil, en línea en escritorio */}
+                                      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-1.5 text-xs">
+                                        <label className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 min-w-0">
                                           <span className="text-[10px] uppercase font-bold text-neutral-400">Abre:</span>
                                           <input
                                             type="time"
                                             value={slot.open}
                                             onChange={e => handleUpdateSlotTime(day.dayId, slot.id, 'open', e.target.value)}
-                                            className="px-2 py-1 rounded border border-neutral-300 text-xs font-bold bg-white text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full sm:w-auto min-w-0 px-1.5 sm:px-2 py-2 sm:py-1 rounded border border-neutral-300 text-base sm:text-xs max-sm:[&::-webkit-calendar-picker-indicator]:hidden font-bold bg-white text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                           />
-                                        </div>
-                                        <span className="text-neutral-400 font-bold px-0.5">a</span>
-                                        <div className="flex items-center gap-1">
+                                        </label>
+                                        <span className="hidden sm:inline text-neutral-400 font-bold px-0.5">a</span>
+                                        <label className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 min-w-0">
                                           <span className="text-[10px] uppercase font-bold text-neutral-400">Cierra:</span>
                                           <input
                                             type="time"
                                             value={slot.close}
                                             onChange={e => handleUpdateSlotTime(day.dayId, slot.id, 'close', e.target.value)}
-                                            className="px-2 py-1 rounded border border-neutral-300 text-xs font-bold bg-white text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full sm:w-auto min-w-0 px-1.5 sm:px-2 py-2 sm:py-1 rounded border border-neutral-300 text-base sm:text-xs max-sm:[&::-webkit-calendar-picker-indicator]:hidden font-bold bg-white text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                           />
-                                        </div>
+                                        </label>
                                       </div>
                                     </div>
 
-                                    {/* Botón eliminar turno */}
+                                    {/* Botón eliminar turno (escritorio) */}
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveSlotFromDay(day.dayId, slot.id)}
                                       title="Eliminar este turno (si no hay turnos este día no abre)"
-                                      className="p-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                      aria-label={`Eliminar turno ${sIdx + 1}`}
+                                      className="hidden sm:block p-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -1092,24 +1109,45 @@ export const StoreProfileTab: React.FC = () => {
                               </div>
 
                               {/* Botón para adicionar otra hora de abrir y cerrar */}
-                              <div className="flex items-center justify-between pt-1">
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                                 <button
                                   type="button"
                                   onClick={() => handleAddSlotToDay(day.dayId)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-emerald-400 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:py-1 rounded-lg border border-dashed border-emerald-400 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all cursor-pointer"
                                 >
                                   <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>+ Adicionar otra hora de abrir y cerrar</span>
+                                  <span className="sm:hidden">Agregar otro turno</span>
+                                  <span className="hidden sm:inline">+ Adicionar otra hora de abrir y cerrar</span>
                                 </button>
 
                                 <span className="text-[10px] text-neutral-400 font-medium">
                                   {day.slots.length === 1 ? '1 turno activo' : `${day.slots.length} turnos activos`}
                                 </span>
                               </div>
+
+                              {/* Copiar horario (en móvil; en escritorio está en la cabecera del día) */}
+                              <div className="sm:hidden grid grid-cols-2 gap-2 text-[11px]">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyDayToWeekdays(day.dayId)}
+                                  className="py-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Copiar a Lun-Vie</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyDayToAll(day.dayId)}
+                                  className="py-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Copiar a todos</span>
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div className="px-3 pb-2.5 pt-0">
-                              <div className="p-2 rounded-lg bg-neutral-100/70 border border-dashed border-neutral-200 flex items-center justify-between text-[11px]">
+                              <div className="p-2 rounded-lg bg-neutral-100/70 border border-dashed border-neutral-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-[11px]">
                                 <span className="text-neutral-500 font-medium italic">
                                   🔒 Cerrado todo el día (este día no se abre)
                                 </span>

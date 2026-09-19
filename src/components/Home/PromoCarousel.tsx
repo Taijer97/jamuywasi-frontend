@@ -14,7 +14,7 @@ const GRADIENT_THEMES: Record<string, { bg: string; badge: string; btn: string }
   emerald: {
     bg: 'from-emerald-950 via-emerald-900 to-neutral-950 border-emerald-500/30',
     badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    btn: 'bg-emerald-500 hover:bg-emerald-400 text-neutral-950'
+    btn: 'bg-emerald-600 hover:bg-emerald-700 text-white'
   },
   indigo: {
     bg: 'from-indigo-950 via-indigo-900 to-neutral-950 border-indigo-500/30',
@@ -116,7 +116,7 @@ export const PromoCarousel: React.FC = () => {
   return (
     <div
       id="promo-section"
-      className="relative w-full px-4 sm:px-6 lg:px-8 xl:px-12 mb-3 sm:mb-4 pt-2 sm:pt-3 scroll-mt-24"
+      className="relative w-full px-4 sm:px-6 lg:px-8 xl:px-12 mb-3 sm:mb-4 pt-3 scroll-mt-24"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -125,7 +125,7 @@ export const PromoCarousel: React.FC = () => {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar rounded-3xl shadow-xl border border-neutral-800/80 bg-neutral-950"
+          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl border border-neutral-800/80 bg-neutral-950"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {activeBanners.map(banner => {
@@ -136,13 +136,15 @@ export const PromoCarousel: React.FC = () => {
             const hasSubtitle = Boolean(banner.subtitle && banner.subtitle.trim());
             const hasBadge = Boolean(banner.badge && banner.badge.trim());
             const hasStore = Boolean(store);
-            const hasAnyText = hasTitle || hasSubtitle || hasBadge || hasStore;
+            // Si el admin dejó vacíos título, subtítulo y etiqueta, el anuncio es "solo imagen"
+            // (p. ej. un flyer que ya trae su propio texto): no se superpone nada más.
+            const hasOwnText = hasTitle || hasSubtitle || hasBadge;
 
             return (
               <div
                 key={banner.id}
                 onClick={() => handleActionClick(banner)}
-                className="w-full shrink-0 snap-center relative overflow-hidden min-h-[300px] sm:min-h-[380px] md:min-h-[440px] lg:min-h-[480px] flex items-end cursor-pointer group/slide select-none"
+                className="w-full shrink-0 snap-center relative overflow-hidden aspect-[3/1] flex items-end cursor-pointer group/slide select-none"
               >
                 {/* 1. Imagen de fondo completa a tamaño total */}
                 <img
@@ -152,17 +154,20 @@ export const PromoCarousel: React.FC = () => {
                 />
 
                 {/* 2. Capa de oscurecimiento / gradiente cinemático para legibilidad y elegancia */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10 pointer-events-none" />
-                {hasAnyText && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent pointer-events-none hidden md:block" />
+                {/* Sin título => sin degradado: la imagen se ve tal cual la subió el admin */}
+                {hasTitle && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent pointer-events-none hidden md:block" />
+                  </>
                 )}
 
                 {/* 3. Badge superior flotante (Opcional) */}
-                {(hasBadge || hasStore || product?.compareAtPrice) && (
-                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex flex-wrap items-center gap-2 pointer-events-none">
+                {hasOwnText && (hasBadge || hasStore || product?.compareAtPrice) && (
+                  <div className="hidden sm:flex absolute sm:top-5 sm:left-6 md:top-6 z-10 flex-wrap items-center gap-2 pointer-events-none">
                     {hasBadge && (
                       <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-md ${theme.badge}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold border backdrop-blur-md shadow-md ${theme.badge}`}
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>{banner.badge}</span>
@@ -170,18 +175,18 @@ export const PromoCarousel: React.FC = () => {
                     )}
 
                     {hasStore && store && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs text-white border border-white/20 shadow-md">
+                      <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs text-white border border-white/20 shadow-md">
                         <img
                           src={store.logo || DEFAULT_STORE_LOGO}
                           alt={store.name}
                           className="w-4 h-4 rounded-full object-cover shrink-0"
                         />
-                        <span className="font-semibold">{store.name}</span>
+                        <span className="font-semibold truncate">{store.name}</span>
                       </div>
                     )}
 
                     {product?.compareAtPrice && product.compareAtPrice > product.price && (
-                      <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-600 text-white shadow-md">
+                      <span className="hidden sm:inline px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-600 text-white shadow-md">
                         OFERTA ESPECIAL
                       </span>
                     )}
@@ -189,44 +194,44 @@ export const PromoCarousel: React.FC = () => {
                 )}
 
                 {/* 4. Contenido inferior del Banner: Textos opcionales + Botón Primordial */}
-                <div className="relative z-10 w-full p-5 sm:p-8 md:p-10 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 sm:gap-6">
+                <div className="relative z-10 w-full px-3 pb-3.5 sm:px-6 sm:pb-7 md:p-10 flex flex-row items-end justify-between gap-2 sm:gap-6">
                   {/* Textos Opcionales */}
-                  <div className="space-y-1.5 sm:space-y-2 max-w-2xl text-left">
+                  <div className="space-y-1.5 sm:space-y-2 max-w-2xl text-left min-w-0">
                     {hasTitle && (
-                      <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white drop-shadow-md">
+                      <h2 className="text-sm sm:text-2xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white drop-shadow-md line-clamp-1 sm:line-clamp-2 lg:line-clamp-none">
                         {banner.title}
                       </h2>
                     )}
 
                     {hasSubtitle && (
-                      <p className="text-xs sm:text-sm md:text-base text-neutral-200 leading-relaxed drop-shadow-sm max-w-xl">
+                      <p className="hidden md:block text-sm md:text-base text-neutral-200 leading-relaxed drop-shadow-sm max-w-xl line-clamp-2">
                         {banner.subtitle}
                       </p>
                     )}
 
-                    {product && (
-                      <div className="pt-1">
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-black/50 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-extrabold text-emerald-300 shadow-sm">
-                          <span>{product.name}</span>
+                    {product && hasOwnText && (
+                      <div className="hidden lg:block pt-1">
+                        <span className="inline-flex items-center gap-2 max-w-full px-3 py-1.5 rounded-xl bg-black/50 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-extrabold text-emerald-300 shadow-sm">
+                          <span className="truncate">{product.name}</span>
                           <span>•</span>
-                          <span>Desde {store?.currencySymbol || 'S/'} {product.price.toFixed(2)}</span>
+                          <span className="whitespace-nowrap">Desde {store?.currencySymbol || 'S/'} {product.price.toFixed(2)}</span>
                         </span>
                       </div>
                     )}
                   </div>
 
                   {/* Botón Primordial de Redirección (Siempre presente y llamativo) */}
-                  <div className="shrink-0 self-start sm:self-end">
+                  <div className="shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleActionClick(banner);
                       }}
-                      className={`inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-xl cursor-pointer hover:scale-105 active:scale-95 border border-white/20 ${theme.btn}`}
+                      className={`inline-flex items-center justify-center gap-1.5 sm:gap-2.5 px-3 sm:px-6 py-1.5 sm:py-3 rounded-lg sm:rounded-2xl text-[11px] sm:text-sm font-black transition-all shadow-xl cursor-pointer hover:scale-105 active:scale-95 border border-white/20 ${theme.btn}`}
                     >
                       <span>{banner.buttonText || 'Ver Promoción'}</span>
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
@@ -244,7 +249,7 @@ export const PromoCarousel: React.FC = () => {
                 handlePrev();
               }}
               aria-label="Anuncio anterior"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border border-white/20 shadow-xl active:scale-95 hover:scale-105"
+              className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md items-center justify-center transition-all cursor-pointer border border-white/20 shadow-xl active:scale-95 hover:scale-105"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -255,7 +260,7 @@ export const PromoCarousel: React.FC = () => {
                 handleNext();
               }}
               aria-label="Siguiente anuncio"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border border-white/20 shadow-xl active:scale-95 hover:scale-105"
+              className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md items-center justify-center transition-all cursor-pointer border border-white/20 shadow-xl active:scale-95 hover:scale-105"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
@@ -264,7 +269,7 @@ export const PromoCarousel: React.FC = () => {
 
         {/* Pagination Dots with Snap Indicator */}
         {activeBanners.length > 1 && (
-          <div className="absolute bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5 pointer-events-auto">
+          <div className="absolute bottom-1.5 sm:bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5 pointer-events-none [&>button]:pointer-events-auto">
             {activeBanners.map((_, idx) => (
               <button
                 key={idx}

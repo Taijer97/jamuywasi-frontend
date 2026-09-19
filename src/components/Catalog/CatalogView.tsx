@@ -21,7 +21,7 @@ import {
   MessageCircle,
   Globe
 } from 'lucide-react';
-import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink } from '../../utils/subscriptionUtils';
+import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink, getAdminWhatsApp } from '../../utils/subscriptionUtils';
 import { DEFAULT_STORE_BANNER, DEFAULT_STORE_LOGO } from '../../data/initialData';
 
 export const CatalogView: React.FC = () => {
@@ -36,8 +36,12 @@ export const CatalogView: React.FC = () => {
     currentUser,
     viewingStoreCatalog,
     openStoreCatalog,
-    returnToStoresDirectory
+    returnToStoresDirectory,
+    yapeConfig,
+    isLoadingData
   } = useApp();
+  // WhatsApp del SuperAdmin (SuperAdmin > Cobros & QR Yape)
+  const adminWhatsApp = getAdminWhatsApp(yapeConfig);
 
   // Search filter for stores directory
   const [storeSearch, setStoreSearch] = useState('');
@@ -325,6 +329,66 @@ export const CatalogView: React.FC = () => {
     );
   }
 
+  // 0a. Mientras llegan los datos del servidor NO mostramos la tienda genérica de respaldo
+  //     ("JamuyWasi"), sino un esqueleto de carga. Así, al recargar una tienda, no aparece
+  //     por un instante otra tienda antes de la correcta.
+  if (isLoadingData) {
+    return (
+      <div className="min-h-[75vh] bg-neutral-50" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Cargando tienda…</span>
+        <div className="h-40 sm:h-56 bg-neutral-200 motion-safe:animate-pulse" />
+        <div className="max-w-6xl mx-auto px-4 -mt-10 sm:-mt-12 space-y-4">
+          <div className="flex items-end gap-4">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-neutral-300 border-4 border-white motion-safe:animate-pulse" />
+            <div className="flex-1 space-y-2 pb-2">
+              <div className="h-5 w-2/3 sm:w-1/3 rounded-lg bg-neutral-200 motion-safe:animate-pulse" />
+              <div className="h-3 w-1/2 sm:w-1/4 rounded-lg bg-neutral-200 motion-safe:animate-pulse" />
+            </div>
+          </div>
+          <div className="h-10 w-full rounded-xl bg-neutral-200 motion-safe:animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 pb-10">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl bg-white border border-neutral-200 overflow-hidden">
+                <div className="aspect-square bg-neutral-200 motion-safe:animate-pulse" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 w-3/4 rounded bg-neutral-200 motion-safe:animate-pulse" />
+                  <div className="h-3 w-1/3 rounded bg-neutral-200 motion-safe:animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 0b. Ya cargó, pero la tienda pedida en el enlace no existe o no está disponible:
+  //     antes se mostraba la primera tienda de la lista (otra tienda) o la genérica.
+  const requestedStoreMissing =
+    !currentStore.id ||
+    (Boolean(currentStoreId) && currentStore.id !== currentStoreId && currentStore.slug !== currentStoreId);
+  if (requestedStoreMissing) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-neutral-200 text-center shadow-lg space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-neutral-100 text-neutral-500 flex items-center justify-center mx-auto">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-neutral-900">Tienda no disponible</h2>
+          <p className="text-sm text-neutral-600 leading-relaxed">
+            No encontramos esta tienda o todavía no está publicada. Revisa el enlace o explora otras tiendas.
+          </p>
+          <button
+            onClick={returnToStoresDirectory}
+            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors cursor-pointer"
+          >
+            Ver tiendas disponibles
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const storeOwner = users.find(u => u.storeId === currentStore.id && u.role === 'merchant');
   const storeOwnerSubInfo = storeOwner ? getSubscriptionStatusInfo(storeOwner.subscription, storeOwner.status) : null;
   const isStoreExpired = storeOwnerSubInfo?.isExpired ?? false;
@@ -351,7 +415,7 @@ export const CatalogView: React.FC = () => {
           <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 font-medium text-left space-y-1">
             <p className="font-bold">¿Eres el comerciante de esta tienda?</p>
             <p className="text-[11px] text-rose-800">
-              Para reactivar tu tienda y volver a recibir pedidos, solicita tu renovación vía WhatsApp al <strong>+51 325 763 903</strong>.
+              Para reactivar tu tienda y volver a recibir pedidos, solicita tu renovación vía WhatsApp al <strong>{adminWhatsApp.display}</strong>.
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2">
@@ -361,7 +425,7 @@ export const CatalogView: React.FC = () => {
                 storeOwner?.name || '',
                 storeOwner?.email || '',
                 storeOwner?.subscription?.planId || 'starter',
-                '51325763903'
+                adminWhatsApp.wa
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -399,12 +463,12 @@ export const CatalogView: React.FC = () => {
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium text-left space-y-1">
             <p className="font-bold">¿Eres el comerciante de esta tienda?</p>
             <p className="text-[11px] text-amber-800">
-              Solicita la activación de tu catálogo contactando al SuperAdministrador vía WhatsApp al <strong>+51 325 763 903</strong>.
+              Solicita la activación de tu catálogo contactando al SuperAdministrador vía WhatsApp al <strong>{adminWhatsApp.display}</strong>.
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2">
             <a
-              href="https://wa.me/51325763903?text=Hola%20SuperAdmin,%20deseo%20autorizar%20mi%20tienda%20en%20JamuyWasi"
+              href={`https://wa.me/${adminWhatsApp.wa}?text=${encodeURIComponent(`Hola SuperAdmin, deseo autorizar mi tienda ${currentStore.name} en JamuyWasi`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"

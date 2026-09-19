@@ -92,12 +92,25 @@ export function getSubscriptionStatusInfo(
   };
 }
 
+/**
+ * Número de WhatsApp del SuperAdmin configurado en SuperAdmin > Cobros & QR Yape.
+ * Devuelve el número listo para wa.me (con código de país 51) y el texto para mostrar.
+ */
+export function getAdminWhatsApp(config?: { phone?: string; phoneFormatted?: string } | null): { wa: string; display: string } {
+  let digits = (config?.phone || '').replace(/\D/g, '');
+  if (!digits) digits = '925763903';
+  const wa = digits.length === 9 ? `51${digits}` : digits;
+  const display = (config?.phoneFormatted || '').trim()
+    || (wa.length === 11 ? `+${wa.slice(0, 2)} ${wa.slice(2, 5)} ${wa.slice(5, 8)} ${wa.slice(8)}` : `+${wa}`);
+  return { wa, display };
+}
+
 export function buildReactivationWhatsAppLink(
   storeName: string,
   merchantName: string,
   email: string,
   plan: string,
-  targetPhone: string = '51325763903'
+  targetPhone: string
 ): string {
   const cleanPhone = targetPhone.replace(/\D/g, '');
   const message = [

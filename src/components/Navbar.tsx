@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BRAND_LOGO_URL } from '../data/brand';
 import { useApp } from '../context/AppContext';
 import {
   Store,
@@ -68,9 +69,13 @@ export const Navbar: React.FC = () => {
               onClick={() => setActiveView('home')}
               className="flex items-center gap-2.5 cursor-pointer group"
             >
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm shadow-emerald-600/30 group-hover:scale-105 transition-transform">
-                <Store className="w-5 h-5" />
-              </div>
+              <img
+                src={BRAND_LOGO_URL}
+                alt="JamuyWasi"
+                width={36}
+                height={36}
+                className="w-9 h-9 object-contain shrink-0 group-hover:scale-105 transition-transform"
+              />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-base tracking-tight text-neutral-900 group-hover:text-emerald-700 transition-colors">

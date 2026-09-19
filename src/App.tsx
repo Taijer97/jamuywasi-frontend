@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from 'react';
+import { BRAND_LOGO_URL } from './data/brand';
 import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { Navbar } from './components/Navbar';
@@ -98,6 +99,7 @@ const AppContent: React.FC = () => {
       <footer className="bg-white border-t border-neutral-200 py-6 text-xs text-neutral-500">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
+            <img src={BRAND_LOGO_URL} alt="" width={20} height={20} className="w-5 h-5 object-contain" />
             <span className="font-bold text-neutral-900">JamuyWasi</span>
             <span>•</span>
             <span>Ventas automáticas directas a WhatsApp</span>

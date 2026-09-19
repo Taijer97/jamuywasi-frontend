@@ -27,7 +27,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { formatPrice } from '../../utils/whatsapp';
-import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink } from '../../utils/subscriptionUtils';
+import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink, getAdminWhatsApp } from '../../utils/subscriptionUtils';
 
 export const SubscriptionTab: React.FC = () => {
   const {
@@ -37,8 +37,11 @@ export const SubscriptionTab: React.FC = () => {
     currentStoreOrders,
     upgradeSubscription,
     currentStore,
-    openPlanPurchaseModal
+    openPlanPurchaseModal,
+    yapeConfig
   } = useApp();
+  // WhatsApp del SuperAdmin (SuperAdmin > Cobros & QR Yape)
+  const adminWhatsApp = getAdminWhatsApp(yapeConfig);
 
   const user = currentUser || effectiveUser;
 
@@ -155,14 +158,14 @@ export const SubscriptionTab: React.FC = () => {
               user.name,
               user.email,
               user.subscription.planId,
-              '51325763903'
+              adminWhatsApp.wa
             )}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer flex items-center justify-center gap-2 shrink-0 whitespace-nowrap"
           >
             <MessageCircle className="w-4 h-4 fill-white" />
-            <span>Reactivar Plan por WhatsApp (+51 325 763 903) →</span>
+            <span>Reactivar Plan por WhatsApp ({adminWhatsApp.display}) →</span>
           </a>
         </div>
       )}

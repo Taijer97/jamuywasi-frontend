@@ -33,7 +33,7 @@ import {
   MapPin,
   X
 } from 'lucide-react';
-import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink } from '../../utils/subscriptionUtils';
+import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink, getAdminWhatsApp } from '../../utils/subscriptionUtils';
 
 export const MerchantDashboard: React.FC = () => {
   const {
@@ -50,8 +50,11 @@ export const MerchantDashboard: React.FC = () => {
     setCurrentStoreId,
     createAdditionalStore,
     openPlanPurchaseModal,
-    isRealtimeConnected
+    isRealtimeConnected,
+    yapeConfig
   } = useApp();
+  // WhatsApp del SuperAdmin (SuperAdmin > Cobros & QR Yape)
+  const adminWhatsApp = getAdminWhatsApp(yapeConfig);
 
   const merchantCleanPhone = currentUser?.phone ? currentUser.phone.replace(/\D/g, '').slice(-9) : '';
 
@@ -365,14 +368,14 @@ export const MerchantDashboard: React.FC = () => {
                   currentUser?.name || '',
                   currentUser?.email || '',
                   currentUser?.subscription?.planId || 'starter',
-                  '51325763903'
+                  adminWhatsApp.wa
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <MessageCircle className="w-4 h-4 fill-white" />
-                <span>Reactivar Plan por WhatsApp (+51 325 763 903) →</span>
+                <span>Reactivar Plan por WhatsApp ({adminWhatsApp.display}) →</span>
               </a>
               <button
                 onClick={() => setMerchantTab('subscription')}

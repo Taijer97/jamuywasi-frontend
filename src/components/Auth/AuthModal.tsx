@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { BRAND_LOGO_URL } from '../../data/brand';
 import { useApp } from '../../context/AppContext';
 import { PlanTier } from '../../types';
 import { SAAS_PLANS } from '../../data/initialData';
@@ -241,9 +242,7 @@ export const AuthModal: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-neutral-100">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-              <Store className="w-4 h-4 text-white" />
-            </div>
+            <img src={BRAND_LOGO_URL} alt="" width={28} height={28} className="w-7 h-7 object-contain shrink-0" />
             <span className="font-black text-neutral-900 text-sm">JamuyWasi</span>
           </div>
           <div className="flex items-center gap-2">

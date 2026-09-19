@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SUPER_ADMIN_CONFIG } from '../../data/saasPayments';
+import { getAdminWhatsApp } from '../../utils/subscriptionUtils';
 import {
   ShieldAlert,
   MessageCircle,
@@ -32,7 +32,9 @@ export const PendingApprovalModal: React.FC<PendingApprovalModalProps> = ({
   onClose,
   merchantData
 }) => {
-  const { currentUser, currentStore, logout } = useApp();
+  const { currentUser, currentStore, logout, yapeConfig } = useApp();
+  // WhatsApp del SuperAdmin (SuperAdmin > Cobros & QR Yape)
+  const adminWhatsApp = getAdminWhatsApp(yapeConfig);
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -62,10 +64,10 @@ export const PendingApprovalModal: React.FC<PendingApprovalModalProps> = ({
     '¿Podría habilitar mi acceso, por favor? Muchas gracias.'
   ].filter(Boolean).join('\n');
 
-  const whatsappUrl = `https://wa.me/${SUPER_ADMIN_CONFIG.phone}?text=${encodeURIComponent(whatsappMessage)}`;
+  const whatsappUrl = `https://wa.me/${adminWhatsApp.wa}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(SUPER_ADMIN_CONFIG.phoneFormatted);
+    navigator.clipboard.writeText(adminWhatsApp.display);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -153,7 +155,7 @@ export const PendingApprovalModal: React.FC<PendingApprovalModalProps> = ({
               className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 transition-all cursor-pointer text-center"
             >
               <MessageCircle className="w-5 h-5 fill-white shrink-0" />
-              <span>Solicitar Acceso por WhatsApp (+51 925 763 903)</span>
+              <span>Solicitar Acceso por WhatsApp ({adminWhatsApp.display})</span>
               <ExternalLink className="w-4 h-4 opacity-75 shrink-0" />
             </a>
 
@@ -165,7 +167,7 @@ export const PendingApprovalModal: React.FC<PendingApprovalModalProps> = ({
                 className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-neutral-800 hover:text-emerald-700 cursor-pointer bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1 rounded-lg transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
-                <span>{SUPER_ADMIN_CONFIG.phoneFormatted}</span>
+                <span>{adminWhatsApp.display}</span>
               </button>
             </div>
           </div>

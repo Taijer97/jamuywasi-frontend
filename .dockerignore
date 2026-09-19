@@ -1,0 +1,12 @@
+# Nunca meter secretos en la imagen ni en el contexto de build
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+node_modules/
+dist/
+.git/
+bun.lock
+README.md
+*.log

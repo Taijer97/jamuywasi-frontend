@@ -53,7 +53,7 @@ export const BannersManagementTab: React.FC = () => {
     setEditingBanner(null);
     setTitle('');
     setSubtitle('');
-    setBadge('🔥 Oferta Exclusiva');
+    setBadge('');
     setImageUrl('https://images.unsplash.com/photo-1552346154-21d32810aba3?w=1200&auto=format&fit=crop&q=80');
     setSelectedStoreId(stores[0]?.id || '');
     setSelectedProductId('');
@@ -98,13 +98,9 @@ export const BannersManagementTab: React.FC = () => {
     setSelectedProductId(productId);
     const prod = products.find(p => p.id === productId);
     if (prod) {
-      if (!title || editingBanner === null) {
-        setTitle(`¡Promoción Especial en ${prod.name}!`);
-      }
+      // Solo se usa la foto del producto; título, subtítulo y etiqueta quedan vacíos
+      // salvo que el admin los escriba (los textos son opcionales).
       setImageUrl(prod.imageUrl);
-      if (!subtitle || editingBanner === null) {
-        setSubtitle(prod.description);
-      }
     }
   };
 
@@ -131,9 +127,10 @@ export const BannersManagementTab: React.FC = () => {
       return;
     }
 
-    const cleanTitle = title.trim() || 'Anuncio Promocional';
+    // Textos opcionales: si se dejan vacíos, el anuncio no muestra nada en ese lugar
+    const cleanTitle = title.trim();
     const cleanSubtitle = subtitle.trim();
-    const cleanBadge = badge.trim() || 'OFERTA';
+    const cleanBadge = badge.trim();
     const cleanBtn = buttonText.trim() || 'Ver Promoción';
 
     try {
@@ -246,7 +243,7 @@ export const BannersManagementTab: React.FC = () => {
                     <div className="relative w-20 h-16 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200">
                       <img loading="lazy" decoding="async"
                         src={banner.imageUrl || DEFAULT_STORE_BANNER}
-                        alt={banner.title}
+                        alt={banner.title || 'Anuncio'}
                         className="w-full h-full object-cover"
                       />
                       {!banner.isActive && (
@@ -259,9 +256,11 @@ export const BannersManagementTab: React.FC = () => {
                     {/* Information */}
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700">
-                          {banner.badge}
-                        </span>
+                        {banner.badge && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700">
+                            {banner.badge}
+                          </span>
+                        )}
                         {store && (
                           <span className="text-[10px] font-bold text-neutral-600 flex items-center gap-1">
                             <StoreIcon className="w-3 h-3" />
@@ -273,13 +272,15 @@ export const BannersManagementTab: React.FC = () => {
                         </span>
                       </div>
 
-                      <h4 className="text-sm font-bold text-neutral-900 truncate max-w-md">
-                        {banner.title}
+                      <h4 className={`text-sm font-bold truncate max-w-md ${banner.title ? 'text-neutral-900' : 'text-neutral-400 italic font-medium'}`}>
+                        {banner.title || 'Sin textos (solo imagen)'}
                       </h4>
 
-                      <p className="text-xs text-neutral-500 line-clamp-1 max-w-lg">
-                        {banner.subtitle}
-                      </p>
+                      {banner.subtitle && (
+                        <p className="text-xs text-neutral-500 line-clamp-1 max-w-lg">
+                          {banner.subtitle}
+                        </p>
+                      )}
 
                       {product && (
                         <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
@@ -318,7 +319,7 @@ export const BannersManagementTab: React.FC = () => {
                     {/* Delete button */}
                     <button
                       onClick={() => {
-                        if (confirm(`¿Eliminar anuncio "${banner.title}"?`)) {
+                        if (confirm(`¿Eliminar anuncio "${banner.title || 'sin título'}"?`)) {
                           deleteBanner(banner.id);
                         }
                       }}
@@ -468,6 +469,10 @@ export const BannersManagementTab: React.FC = () => {
                 <label className="text-xs font-bold text-neutral-800 block mb-1">
                   Imagen de la Propaganda / Banner: *
                 </label>
+                <p className="text-[11px] text-neutral-500 mb-1.5">
+                  Usa una imagen <b>panorámica 3:1</b> (recomendado <b>1920 × 640 px</b>). El carrusel tiene esa misma forma en
+                  celular y computadora, así la imagen se ve completa sin recortes. Deja el texto importante lejos de los bordes.
+                </p>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -504,14 +509,14 @@ export const BannersManagementTab: React.FC = () => {
                   </button>
                 </div>
                 {imageUrl && (
-                  <div className="relative rounded-xl overflow-hidden border border-neutral-200 aspect-[21/9] max-h-40 bg-neutral-100 flex items-center justify-center">
+                  <div className="relative rounded-xl overflow-hidden border border-neutral-200 aspect-[3/1] bg-neutral-100 flex items-center justify-center">
                     <img loading="lazy" decoding="async"
                       src={imageUrl}
                       alt="Vista previa del banner"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
-                      Vista previa
+                      Vista previa (3:1)
                     </div>
                   </div>
                 )}

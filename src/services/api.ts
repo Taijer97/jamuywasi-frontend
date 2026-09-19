@@ -224,9 +224,9 @@ function mapProductToBackend(product: Partial<Product>): any {
 export function mapBannerFromBackend(raw: any): PromotionalBanner {
   return {
     id: raw.id,
-    title: raw.title,
+    title: raw.title || '',
     subtitle: raw.subtitle || '',
-    badge: raw.badge || 'OFERTA',
+    badge: raw.badge || '',
     imageUrl: normalizeImageUrl(raw.image_url),
     productId: raw.product_id || undefined,
     storeId: raw.store_id || undefined,

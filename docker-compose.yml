@@ -1,0 +1,37 @@
+# ==============================================================
+#  JamuyWasi — Frontend (React compilado + Nginx)
+#
+#  Requiere que exista la red compartida con el backend:
+#     docker network create jamuywasi_net        (una sola vez)
+#  Levantar / actualizar:
+#     docker compose up -d --build
+# ==============================================================
+name: jamuywasi-frontend
+
+services:
+  web:
+    build: .
+    image: jamuywasi/web:latest
+    container_name: jamuywasi-frontend
+    restart: unless-stopped
+    environment:
+      # Dónde está la API. Por defecto el contenedor del backend en la red jamuywasi_net.
+      API_UPSTREAM: ${API_UPSTREAM:-http://backend:8000}
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      - media_cache:/var/cache/nginx/media
+    networks:
+      - jamuywasi_net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  media_cache:
+
+networks:
+  jamuywasi_net:
+    external: true
