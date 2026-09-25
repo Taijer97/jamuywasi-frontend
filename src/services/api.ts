@@ -316,6 +316,17 @@ export const api = {
     return mapStoreFromBackend(data);
   },
 
+  async deleteStore(storeId: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/stores/${storeId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeader() }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Error al eliminar tienda');
+    }
+  },
+
   // --- Products ---
   async getProducts(params?: {
     search?: string;

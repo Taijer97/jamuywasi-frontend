@@ -21,7 +21,8 @@ import {
   Info,
   ShieldCheck,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 
 interface UserStoresModalProps {
@@ -42,6 +43,7 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
     setActiveView,
     setMerchantTab,
     updateStoreConfig,
+    deleteStore,
     refreshMyStores,
     refreshUsers,
     addLiveNotification
@@ -58,6 +60,7 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null);
 
   if (!isOpen || !user) return null;
 
@@ -101,6 +104,33 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
       console.error('Error al cambiar estado de la tienda:', err);
     } finally {
       setTogglingStoreId(null);
+    }
+  };
+
+  const handleDeleteStore = async (store: StoreConfig) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de eliminar permanentemente la tienda "${store.name}"?\n\nEsta acción borrará definitivamente la tienda, sus productos, categorías, imágenes y pedidos asociados. Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setDeletingStoreId(store.id);
+    try {
+      const res = await deleteStore(store.id);
+      if (res.success) {
+        addLiveNotification({
+          title: 'Tienda Eliminada',
+          message: `La tienda "${store.name}" y todos sus productos fueron eliminados exitosamente.`,
+          type: 'success'
+        });
+        await refreshMyStores();
+        await refreshUsers();
+      } else {
+        alert(res.error || 'No se pudo eliminar la tienda');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar la tienda');
+    } finally {
+      setDeletingStoreId(null);
     }
   };
 
@@ -378,6 +408,17 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
                       >
                         <LayoutDashboard className="w-3.5 h-3.5" />
                         <span>Panel Tienda</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStore(store)}
+                        disabled={deletingStoreId === store.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 hover:border-rose-400 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                        title="Eliminar permanentemente esta tienda y todos sus productos de la base de datos"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{deletingStoreId === store.id ? 'Eliminando...' : 'Eliminar'}</span>
                       </button>
                     </div>
                   </div>

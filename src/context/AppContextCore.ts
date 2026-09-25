@@ -177,6 +177,7 @@ export interface AppContextType {
   deleteProduct: (productId: string) => Promise<void>;
   toggleProductStock: (productId: string) => Promise<void>;
   updateStoreConfig: (config: StoreConfig) => Promise<void>;
+  deleteStore: (storeId: string) => Promise<{ success: boolean; error?: string }>;
   upgradeSubscription: (planId: PlanTier, billingCycle?: 'monthly' | 'annual') => void;
   
   // Superadmin Store & User Management Actions

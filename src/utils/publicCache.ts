@@ -10,7 +10,7 @@
  */
 import type { StoreConfig, Product, PromotionalBanner, YapePaymentConfig } from '../types';
 
-const CACHE_KEY = 'jw_public_cache_v1';
+const CACHE_KEY = 'jw_public_cache_v2';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 
 export interface PublicCache {

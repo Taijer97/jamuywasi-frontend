@@ -185,7 +185,7 @@ export const UserManagementTab: React.FC = () => {
     e.preventDefault();
     if (!newName.trim() || !newEmail.trim()) return;
 
-    const assignedStoreId = newRole === 'superadmin' ? 'all' : (newStoreId || stores[0]?.id || 'store_aura');
+    const assignedStoreId = newRole === 'superadmin' ? 'all' : (newStoreId || stores[0]?.id || '');
 
     const created = addUser({
       name: newName.trim(),
@@ -1466,16 +1466,21 @@ export const UserManagementTab: React.FC = () => {
                     <p><strong>Rol:</strong> {deleteConfirmationUser.role === 'superadmin' ? 'Super Administrador' : 'Admin de Tienda'}</p>
                     <p><strong>Plan:</strong> {(deleteConfirmationUser.subscription?.planId || 'starter').toUpperCase()}</p>
                     {deleteConfirmationUser.role === 'merchant' && (
-                      <p>
-                        <strong>Estado de Suscripción:</strong>{' '}
-                        <span className={`font-bold ${isExpiredOrCanceled ? 'text-rose-700' : 'text-emerald-700'}`}>
-                          {deleteConfirmationUser.subscription?.status === 'canceled'
-                            ? 'Cancelada'
-                            : info.isExpired
-                            ? 'Vencida / Pago Pendiente'
-                            : 'Activa / Vigente'}
-                        </span>
-                      </p>
+                      <>
+                        <p>
+                          <strong>Estado de Suscripción:</strong>{' '}
+                          <span className={`font-bold ${isExpiredOrCanceled ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {deleteConfirmationUser.subscription?.status === 'canceled'
+                              ? 'Cancelada'
+                              : info.isExpired
+                              ? 'Vencida / Pago Pendiente'
+                              : 'Activa / Vigente'}
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-rose-700 font-semibold pt-1 border-t border-neutral-200/80">
+                          ⚠️ Al eliminar este comerciante, también se eliminarán permanentemente todas las tiendas, productos y pedidos asociados a su cargo.
+                        </p>
+                      </>
                     )}
                   </div>
 

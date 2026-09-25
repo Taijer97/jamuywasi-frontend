@@ -1604,12 +1604,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const res = await api.deleteUser(userId);
     if (res.success) {
       setUsers(prev => prev.filter(u => u.id !== userId));
+      await refreshStores();
+      await refreshMyStores();
       if (currentUserId === userId) {
         setCurrentUserId('');
       }
       return { success: true };
     }
     return { success: false, error: res.error || 'No se pudo eliminar el usuario.' };
+  };
+
+  const deleteStore = async (storeId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await api.deleteStore(storeId);
+      setStores(prev => prev.filter(s => s.id !== storeId));
+      setProducts(prev => prev.filter(p => p.storeId !== storeId));
+      if (currentStoreId === storeId) {
+        const remaining = stores.filter(s => s.id !== storeId);
+        setCurrentStoreId(remaining[0]?.id || '');
+      }
+      await refreshStores();
+      await refreshMyStores();
+      await refreshUsers();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error al eliminar tienda:', err);
+      return { success: false, error: err.message || 'Error al eliminar la tienda' };
+    }
   };
 
   const updateUserSubscription = async (userId: string, updates: Partial<Subscription>) => {
@@ -2152,6 +2173,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProduct,
         toggleProductStock,
         updateStoreConfig,
+        deleteStore,
         upgradeSubscription,
         createNewStore,
         addUser,
