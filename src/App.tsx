@@ -1,4 +1,5 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
+import { lazyWithRetry } from './utils/chunkErrors';
 import { BRAND_LOGO_URL } from './data/brand';
 import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
@@ -6,22 +7,23 @@ import { Navbar } from './components/Navbar';
 import { HomeDashboard } from './components/Home/HomeDashboard';
 import { MarketplaceDashboard } from './components/Marketplace/MarketplaceDashboard';
 import { CatalogView } from './components/Catalog/CatalogView';
-import { AccessDeniedView } from './components/Auth/AccessDeniedView';
+import { RedirectHome } from './components/Common/RedirectHome';
 import { FloatingCartButton } from './components/Catalog/FloatingCartButton';
+import { CartStoreSwitchDialog } from './components/Catalog/CartStoreSwitchDialog';
 import { LiveNotificationToast } from './components/Common/LiveNotificationToast';
 import { MessageCircle, Store, ShieldCheck, Heart, Loader2 } from 'lucide-react';
 
 // Lazy loaded heavy administrative and secondary views
-const MerchantDashboard = lazy(() => import('./components/Merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
-const SaasAdminView = lazy(() => import('./components/SuperAdmin/SaasAdminView').then(m => ({ default: m.SaasAdminView })));
-const AuthModal = lazy(() => import('./components/Auth/AuthModal').then(m => ({ default: m.AuthModal })));
-const ChangePinModal = lazy(() => import('./components/Auth/ChangePinModal').then(m => ({ default: m.ChangePinModal })));
-const ProductModal = lazy(() => import('./components/Catalog/ProductModal').then(m => ({ default: m.ProductModal })));
-const CartDrawer = lazy(() => import('./components/Catalog/CartDrawer').then(m => ({ default: m.CartDrawer })));
-const OrderSuccessModal = lazy(() => import('./components/Catalog/OrderSuccessModal').then(m => ({ default: m.OrderSuccessModal })));
-const UserProfileModal = lazy(() => import('./components/Auth/UserProfileModal').then(m => ({ default: m.UserProfileModal })));
-const PendingApprovalModal = lazy(() => import('./components/Auth/PendingApprovalModal').then(m => ({ default: m.PendingApprovalModal })));
-const PlanPurchaseModal = lazy(() => import('./components/Subscription/PlanPurchaseModal').then(m => ({ default: m.PlanPurchaseModal })));
+const MerchantDashboard = lazyWithRetry(() => import('./components/Merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
+const SaasAdminView = lazyWithRetry(() => import('./components/SuperAdmin/SaasAdminView').then(m => ({ default: m.SaasAdminView })));
+const AuthModal = lazyWithRetry(() => import('./components/Auth/AuthModal').then(m => ({ default: m.AuthModal })));
+const ChangePinModal = lazyWithRetry(() => import('./components/Auth/ChangePinModal').then(m => ({ default: m.ChangePinModal })));
+const ProductModal = lazyWithRetry(() => import('./components/Catalog/ProductModal').then(m => ({ default: m.ProductModal })));
+const CartDrawer = lazyWithRetry(() => import('./components/Catalog/CartDrawer').then(m => ({ default: m.CartDrawer })));
+const OrderSuccessModal = lazyWithRetry(() => import('./components/Catalog/OrderSuccessModal').then(m => ({ default: m.OrderSuccessModal })));
+const UserProfileModal = lazyWithRetry(() => import('./components/Auth/UserProfileModal').then(m => ({ default: m.UserProfileModal })));
+const PendingApprovalModal = lazyWithRetry(() => import('./components/Auth/PendingApprovalModal').then(m => ({ default: m.PendingApprovalModal })));
+const PlanPurchaseModal = lazyWithRetry(() => import('./components/Subscription/PlanPurchaseModal').then(m => ({ default: m.PlanPurchaseModal })));
 
 const ViewLoadingFallback = () => (
   <div className="flex-1 min-h-[50vh] flex flex-col items-center justify-center p-8 text-neutral-400">
@@ -41,8 +43,13 @@ const AppContent: React.FC = () => {
     pendingApprovalMerchantData,
     planPurchaseModalOpen,
     planPurchaseInitialPlan,
-    closePlanPurchaseModal
+    closePlanPurchaseModal,
+    isLoadingData
   } = useApp();
+
+  // Sin permiso: mientras se comprueba la sesión se muestra "Cargando"; si no hay permiso, al inicio
+  // (sin revelar qué hay en la página pedida).
+  const guard = (allowed: boolean) => (allowed ? null : isLoadingData ? <ViewLoadingFallback /> : <RedirectHome />);
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 font-sans selection:bg-emerald-500 selection:text-white pb-14 md:pb-0">
@@ -54,27 +61,28 @@ const AppContent: React.FC = () => {
         {activeView === 'catalog' && <CatalogView />}
         {activeView === 'merchant' && (
           isAuthenticated && (isMerchant || isSuperAdmin) ? (
-            <Suspense fallback={<ViewLoadingFallback />}>
-              <MerchantDashboard />
-            </Suspense>
-          ) : (
-            <AccessDeniedView />
-          )
+            <ErrorBoundary fallbackTitle="No pudimos abrir tu panel de tienda">
+              <Suspense fallback={<ViewLoadingFallback />}>
+                <MerchantDashboard />
+              </Suspense>
+            </ErrorBoundary>
+          ) : guard(false)
         )}
         {activeView === 'superadmin' && (
           isSuperAdmin ? (
-            <Suspense fallback={<ViewLoadingFallback />}>
-              <SaasAdminView />
-            </Suspense>
-          ) : (
-            <AccessDeniedView />
-          )
+            <ErrorBoundary fallbackTitle="No pudimos abrir el panel de administración">
+              <Suspense fallback={<ViewLoadingFallback />}>
+                <SaasAdminView />
+              </Suspense>
+            </ErrorBoundary>
+          ) : guard(false)
         )}
       </div>
 
       {/* Global Modals & Drawers */}
       <LiveNotificationToast />
       <FloatingCartButton />
+      <CartStoreSwitchDialog />
       {/* Modales en carga diferida: se descargan después de mostrar la página, no bloquean el primer render */}
       <Suspense fallback={null}>
         <ProductModal />
@@ -122,10 +130,7 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <ErrorBoundary
-        fallbackTitle="Error al cargar la aplicación"
-        fallbackMessage="Ocurrió un problema inesperado al cargar la vista. Puedes reintentar sin perder tu sesión de usuario."
-      >
+      <ErrorBoundary variant="page">
         <AppContent />
       </ErrorBoundary>
     </AppProvider>

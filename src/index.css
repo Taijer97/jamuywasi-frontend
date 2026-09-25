@@ -36,3 +36,18 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Resaltado del elemento al abrir una notificación */
+@keyframes notif-pulse {
+  0%, 100% { background-color: rgb(254 243 199 / 0.9); }
+  50% { background-color: rgb(254 243 199 / 0.35); }
+}
+.notif-highlight {
+  animation: notif-pulse 1.2s ease-in-out 3;
+  outline: 2px solid rgb(245 158 11);
+  outline-offset: -2px;
+  scroll-margin-top: 96px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-highlight { animation: none; background-color: rgb(254 243 199 / 0.7); }
+}

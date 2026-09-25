@@ -1,4 +1,4 @@
-import { StoreConfig, Product, PromotionalBanner, Order, OrderStatus, UserAccount, UserProfileUpdateData, UserAdminUpdateData, PromoCode, PromoCodeValidationResult, YapeVerifyResult, YapePaymentConfig, SubscriptionInvoice } from '../types';
+import { StoreConfig, Product, PromotionalBanner, Order, OrderStatus, UserAccount, UserProfileUpdateData, UserAdminUpdateData, PromoCode, PromoCodeValidationResult, YapeVerifyResult, YapePaymentConfig, SubscriptionInvoice, AppNotification } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -260,6 +260,7 @@ export function mapOrderFromBackend(raw: any): Order {
     orderNumber: raw.order_number || raw.orderNumber || (raw.id ? `PED-${raw.id.slice(-4)}` : 'PED-0000'),
     storeId: raw.store_id || raw.storeId || '',
     customerName: raw.customer_name || raw.customerName || 'Cliente',
+    customerDni: raw.customer_dni || raw.customerDni || undefined,
     customerPhone: raw.customer_phone || raw.customerPhone || '',
     customerAddress: raw.customer_address || raw.customerAddress || '',
     notes: raw.notes || undefined,
@@ -274,6 +275,9 @@ export function mapOrderFromBackend(raw: any): Order {
     createdAt: raw.created_at ? new Date(raw.created_at).toISOString() : new Date().toISOString()
   };
 }
+
+/** Debe coincidir con MAX_UPLOAD_MB del backend */
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 export const api = {
   // --- Stores ---
@@ -462,6 +466,7 @@ export const api = {
     storeId: string;
     orderNumber?: string;
     customerName: string;
+    customerDni: string;
     customerPhone: string;
     customerAddress: string;
     notes?: string;
@@ -480,6 +485,7 @@ export const api = {
         store_id: orderData.storeId,
         order_number: orderData.orderNumber,
         customer_name: orderData.customerName,
+        customer_dni: orderData.customerDni,
         customer_phone: orderData.customerPhone,
         customer_address: orderData.customerAddress,
         notes: orderData.notes,
@@ -492,7 +498,19 @@ export const api = {
         whatsapp_message_sent: orderData.whatsappMessageSent
       })
     });
-    if (!res.ok) throw new Error('Error al registrar pedido');
+    if (!res.ok) {
+      // Mensaje claro del servidor (validación de DNI/nombre/teléfono, stock, tienda cerrada…)
+      let message = 'No se pudo registrar tu pedido. Inténtalo de nuevo.';
+      try {
+        const err = await res.json();
+        const d = err?.detail;
+        if (typeof d === 'string') message = d;
+        else if (Array.isArray(d) && d[0]?.msg) message = String(d[0].msg).replace(/^Value error,\s*/i, '');
+        else if (d?.message) message = d.message;
+      } catch { /* respuesta sin JSON */ }
+      if (res.status === 429) message = 'Hiciste varios pedidos seguidos. Espera unos minutos e inténtalo de nuevo.';
+      throw new Error(message);
+    }
     const data = await res.json();
     return mapOrderFromBackend(data);
   },
@@ -524,7 +542,73 @@ export const api = {
   },
 
   // --- MinIO Upload ---
-  async uploadImage(file: File, folder: 'logos' | 'products' | 'banners' = 'products'): Promise<{ url: string; filename: string }> {
+  /**
+   * Sube una imagen. Si el servidor lo permite, el navegador la envía DIRECTO a MinIO
+   * (formulario firmado por el backend: nombre, tipo y tamaño fijos); si no, va por la API.
+   * `thumb` (opcional): versión de 400 px para las tarjetas del catálogo.
+   */
+  async uploadImage(
+    file: File,
+    folder: 'logos' | 'products' | 'banners' = 'products',
+    thumb?: File | null
+  ): Promise<{ url: string; filename: string; thumbUrl?: string | null }> {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error('La imagen pesa más de 5 MB. Elige una foto más liviana o toma una captura de pantalla de ella.');
+    }
+    const friendly = async (res: Response, fallback: string) => {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 413) return new Error('La imagen pesa más de 5 MB. Elige una foto más liviana.');
+      if (res.status === 429) return new Error(err.detail || 'Subiste muchas imágenes seguidas. Espera unos minutos e inténtalo de nuevo.');
+      return new Error(err.detail || fallback);
+    };
+
+    // 1) Pedir permiso de subida directa
+    let presign: any = null;
+    try {
+      const pr = await fetch(`${API_BASE_URL}/uploads/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify({
+          folder,
+          content_type: file.type || 'image/jpeg',
+          size: file.size,
+          thumb_size: thumb && thumb.type === 'image/webp' ? thumb.size : null,
+        }),
+      });
+      if (pr.status === 404) presign = { direct: false };      // backend antiguo
+      else if (!pr.ok) throw await friendly(pr, 'No se pudo preparar la subida.');
+      else presign = await pr.json();
+    } catch (e) {
+      if (e instanceof Error && e.message && !/fetch|network/i.test(e.message)) throw e;
+      presign = { direct: false };
+    }
+
+    if (presign?.direct) {
+      const postForm = async (fields: Record<string, string>, blob: File) => {
+        const fd = new FormData();
+        Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+        fd.append('file', blob);   // el archivo SIEMPRE al final del formulario
+        const up = await fetch(presign.upload_url, { method: 'POST', body: fd });
+        if (up.status === 400 || up.status === 403) {
+          throw Object.assign(new Error('La imagen no cumple los requisitos (tipo o tamaño).'), { rejected: true });
+        }
+        if (!up.ok) throw new Error(`almacenamiento ${up.status}`);
+      };
+      try {
+        await postForm(presign.fields, file);
+        let thumbUrl: string | null = null;
+        if (thumb && presign.thumb_fields) {
+          try { await postForm(presign.thumb_fields, thumb); thumbUrl = presign.thumb_url; } catch { /* sin miniatura: la tarjeta usa la imagen normal */ }
+        }
+        return { url: presign.url, filename: file.name, thumbUrl };
+      } catch (e: any) {
+        if (e?.rejected) throw e;
+        // El almacenamiento no respondió por la vía directa: se intenta por la API (abajo)
+        console.warn('Subida directa no disponible, usando la API:', e);
+      }
+    }
+
+    // 2) Modo clásico: la imagen pasa por la API
     const formData = new FormData();
     formData.append('file', file);
     const res = await fetch(`${API_BASE_URL}/uploads/image?folder=${folder}`, {
@@ -532,10 +616,7 @@ export const api = {
       headers: getAuthHeader(),
       body: formData
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Error al subir imagen a MinIO');
-    }
+    if (!res.ok) throw await friendly(res, 'No se pudo subir la imagen. Inténtalo de nuevo.');
     return res.json();
   },
 
@@ -1194,4 +1275,39 @@ export const api = {
   logout(): void {
     localStorage.removeItem('catalog_saas_jwt_token');
   }
+};
+
+export function mapNotificationFromBackend(raw: any): AppNotification {
+  return {
+    id: raw.id,
+    type: raw.type,
+    title: raw.title || '',
+    message: raw.message || '',
+    link: raw.link || {},
+    storeId: raw.store_id ?? null,
+    isRead: Boolean(raw.is_read),
+    createdAt: raw.created_at
+      ? (/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw.created_at) ? raw.created_at : raw.created_at + 'Z')
+      : new Date().toISOString(),
+  };
+}
+
+/** API de notificaciones (campanita) */
+export const notificationsApi = {
+  async list(limit = 30): Promise<{ items: AppNotification[]; unread: number } | null> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/notifications?limit=${limit}`, { headers: getAuthHeader() });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { items: (data.items || []).map(mapNotificationFromBackend), unread: Number(data.unread || 0) };
+    } catch {
+      return null;
+    }
+  },
+  async markRead(id: string): Promise<void> {
+    try { await fetch(`${API_BASE_URL}/notifications/${id}/read`, { method: 'POST', headers: getAuthHeader() }); } catch { /* noop */ }
+  },
+  async markAllRead(): Promise<void> {
+    try { await fetch(`${API_BASE_URL}/notifications/read-all`, { method: 'POST', headers: getAuthHeader() }); } catch { /* noop */ }
+  },
 };

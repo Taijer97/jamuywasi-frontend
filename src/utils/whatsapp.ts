@@ -110,11 +110,72 @@ export function formatProductListForWhatsApp(items: CartItem[], currencySymbol: 
     .join('\n');
 }
 
+/** Plantillas automáticas antiguas (por defecto y de las tiendas de ejemplo): se reemplazan por el mensaje recomendado. */
+const LEGACY_TEMPLATES = [
+  "¡Hola {store_name}! Quisiera confirmar mi pedido #{order_number}:\n{items}\nTotal: {total}",
+  "🛍️ *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*\nQuiero confirmar mi compra desde el catálogo digital:\n\n👤 *Comprador:* {nombre_cliente}\n📱 *Teléfono:* {telefono_cliente}\n📍 *Modalidad:* {tipo_entrega} ({direccion_entrega})\n💳 *Método de pago:* {metodo_pago}\n\n📋 *RESUMEN DE PRODUCTOS:*\n{lista_productos}\n\n💵 *Subtotal:* {subtotal}\n🚚 *Envío:* {costo_envio}\n💰 *TOTAL A PAGAR:* {total}\n\n💬 *Notas adicionales:* {notas_pedido}\n---\n_Adjunto comprobante de pago._",
+  "🛍️ *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*\nQuiero confirmar mi compra desde el catálogo digital:\n👤 *Comprador:* {nombre_cliente}\n📱 *Teléfono:* {telefono_cliente}\n📍 *Modalidad:* {tipo_entrega} ({direccion_entrega})\n💳 *Método de pago:* {metodo_pago}\n📋 *RESUMEN DE PRODUCTOS:*\n{lista_productos}\n💵 *Subtotal:* {subtotal}\n🚚 *Envío:* {costo_envio}\n💰 *TOTAL A PAGAR:* {total}\n💬 *Notas:* {notas_pedido}",
+  "☕ *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*\n👤 *Cliente:* {nombre_cliente}\n📦 *ITEMS:*\n{lista_productos}\n💰 *TOTAL:* {total}",
+  "🔥 *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*\n👤 *Cliente:* {nombre_cliente}\n{lista_productos}\n💰 *TOTAL:* {total}",
+  "🛍️ *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*\n👤 *Cliente:* {nombre_cliente}\n📦 *PRODUCTOS:*\n{lista_productos}\n💰 *TOTAL:* {total}",
+];
+const normTpl = (t: string) => t.replace(/\s+/g, ' ').trim();
+const LEGACY_SET = new Set(LEGACY_TEMPLATES.map(normTpl));
+export const isLegacyTemplate = (t?: string) => !t || !t.trim() || LEGACY_SET.has(normTpl(t));
+
+
+/** ¿El método de pago es contra entrega (no se puede adelantar)? */
+export const isPayOnDelivery = (method?: string) => /efectivo|contra entrega|al recibir|contraentrega/i.test(method || '');
+
+/** Línea del mensaje que compromete al cliente a enviar el comprobante (incentiva el pago anticipado). */
+export function paymentReminderLine(paymentMethod: string, deliveryType: 'delivery' | 'pickup'): string {
+  if (isPayOnDelivery(paymentMethod)) {
+    return deliveryType === 'delivery'
+      ? '💵 Pagaré en efectivo al recibir el pedido.'
+      : '💵 Pagaré en efectivo al recoger el pedido.';
+  }
+  return deliveryType === 'delivery'
+    ? '📎 *Comprobante:* les envío la captura del pago por este chat para que mi pedido se confirme y salga con prioridad ⚡'
+    : '📎 *Comprobante:* les envío la captura del pago por este chat para que tengan mi pedido listo cuanto antes ⚡';
+}
+
+/** Mensaje por defecto: distinto para envío a domicilio y para recojo. */
+function defaultOrderTemplate(deliveryType: 'delivery' | 'pickup', isVirtual: boolean, hasNotes: boolean): string {
+  const head = `🛍️ *NUEVO PEDIDO #{numero_pedido}*
+¡Hola, {nombre_tienda}! Acabo de hacer este pedido desde su catálogo 👇
+
+👤 *Cliente:* {nombre_cliente}
+🪪 *DNI/CE:* {dni_cliente}
+📱 *WhatsApp:* {telefono_cliente}
+`;
+  const delivery = deliveryType === 'delivery'
+    ? `
+🚚 *Envío a domicilio*
+📍 *Dirección:* {direccion_entrega}
+`
+    : `
+🏬 *${isVirtual ? 'Recojo en punto de entrega' : 'Recojo en tienda'}*
+📍 *Lugar:* {direccion_entrega}
+🕒 Por favor avísenme cuándo puedo pasar a recogerlo.
+`;
+  const body = `
+📦 *Productos:*
+{lista_productos}
+
+Subtotal: {subtotal}
+${deliveryType === 'delivery' ? 'Envío: {costo_envio}\n' : ''}💰 *TOTAL: {total}*
+💳 *Pago:* {metodo_pago}
+${hasNotes ? '📝 *Notas:* {notas_pedido}\n' : ''}
+{recordatorio_pago}`;
+  return head + delivery + body;
+}
+
 export function generateWhatsAppOrderMessage(
   store: StoreConfig,
   orderNumber: string,
   customerData: {
     name: string;
+    dni?: string;
     phone: string;
     deliveryType: 'delivery' | 'pickup';
     address: string;
@@ -126,45 +187,56 @@ export function generateWhatsAppOrderMessage(
   deliveryFee: number,
   total: number
 ): string {
-  const template = store.whatsappMessageTemplate || `🛍️ *¡HOLA {nombre_tienda}! NUEVO PEDIDO #{numero_pedido}*
-Quiero confirmar mi compra desde el catálogo digital:
+  const isVirtual = store.storeType !== 'fisica';
+  const notes = (customerData.notes || '').trim();
+  const custom = (store.whatsappMessageTemplate || '').trim();
+  const useDefault = isLegacyTemplate(custom);
 
-👤 *Comprador:* {nombre_cliente}
-📱 *Teléfono:* {telefono_cliente}
-📍 *Modalidad:* {tipo_entrega} ({direccion_entrega})
-💳 *Método de pago:* {metodo_pago}
+  let template = useDefault ? defaultOrderTemplate(customerData.deliveryType, isVirtual, Boolean(notes)) : custom;
 
-📋 *RESUMEN DE PRODUCTOS:*
-{lista_productos}
+  // Etiquetas en inglés de plantillas antiguas
+  template = template
+    .replace(/{store_name}/g, '{nombre_tienda}')
+    .replace(/{order_number}/g, '{numero_pedido}')
+    .replace(/{items}/g, '{lista_productos}')
+    .replace(/{customer_name}/g, '{nombre_cliente}')
+    .replace(/{customer_phone}/g, '{telefono_cliente}');
 
-💵 *Subtotal:* {subtotal}
-🚚 *Envío:* {costo_envio}
-💰 *TOTAL A PAGAR:* {total}
-
-💬 *Notas adicionales:* {notas_pedido}
----
-_Adjunto comprobante de pago._`;
+  const dni = (customerData.dni || '').trim();
+  // Si una plantilla propia no muestra el DNI, se añade junto al nombre para que la tienda pueda verificarlo
+  if (!useDefault && dni && !template.includes('{dni_cliente}')) {
+    template = template.replace('{nombre_cliente}', '{nombre_cliente} (DNI/CE {dni_cliente})');
+  }
+  // El recordatorio de pago anticipado siempre va al final si la plantilla no lo ubica
+  if (!template.includes('{recordatorio_pago}')) {
+    template = `${template.trimEnd()}\n\n{recordatorio_pago}`;
+  }
 
   const itemsFormatted = formatProductListForWhatsApp(cartItems, store.currencySymbol);
   const deliveryTypeLabel = customerData.deliveryType === 'delivery'
-    ? 'Envío a Domicilio'
-    : (store.storeType === 'virtual' ? 'Retiro en Punto de Entrega' : 'Retiro en Tienda / Local');
+    ? 'Envío a domicilio'
+    : (isVirtual ? 'Recojo en punto de entrega' : 'Recojo en tienda');
   const deliveryFeeFormatted = deliveryFee > 0 ? formatPrice(deliveryFee, store.currency, store.currencySymbol) : '¡Gratis!';
 
   return template
     .replace(/{nombre_tienda}/g, store.name)
     .replace(/{numero_pedido}/g, orderNumber)
     .replace(/{nombre_cliente}/g, customerData.name || 'Cliente')
+    .replace(/{dni_cliente}/g, dni || '—')
     .replace(/{telefono_cliente}/g, customerData.phone || 'No especificado')
     .replace(/{tipo_entrega}/g, deliveryTypeLabel)
-    .replace(/{direccion_entrega}/g, customerData.address || 'Retiro en tienda')
+    .replace(/{direccion_entrega}/g, customerData.address || (isVirtual ? 'Punto de entrega' : 'Tienda'))
     .replace(/{metodo_pago}/g, customerData.paymentMethod || 'A convenir')
     .replace(/{lista_productos}/g, itemsFormatted)
     .replace(/{subtotal}/g, formatPrice(subtotal, store.currency, store.currencySymbol))
     .replace(/{costo_envio}/g, deliveryFeeFormatted)
+    // En la plantilla por defecto el total ya va en negrita
+    .replace(/\*TOTAL: {total}\*/g, `*TOTAL: ${formatPrice(total, store.currency, store.currencySymbol)}*`)
     .replace(/{total}/g, `*${formatPrice(total, store.currency, store.currencySymbol)}*`)
-    .replace(/{notas_pedido}/g, customerData.notes ? customerData.notes : 'Ninguna')
-    .replace(/{fecha}/g, new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }));
+    .replace(/{notas_pedido}/g, notes || 'Ninguna')
+    .replace(/{recordatorio_pago}/g, paymentReminderLine(customerData.paymentMethod, customerData.deliveryType))
+    .replace(/{fecha}/g, new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }))
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 export function buildWhatsAppLink(countryCode: string, phone: string, message: string): string {

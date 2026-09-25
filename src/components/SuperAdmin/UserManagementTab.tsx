@@ -35,6 +35,7 @@ import {
 import { UserStoresModal } from './UserStoresModal';
 import { getSubscriptionStatusInfo } from '../../utils/subscriptionUtils';
 import { formatPrice } from '../../utils/whatsapp';
+import { exportUsersDirectory } from '../../utils/reportExports';
 
 export const UserManagementTab: React.FC = () => {
   const {
@@ -254,33 +255,19 @@ export const UserManagementTab: React.FC = () => {
     showNotification(`El usuario ${target.name} ha sido eliminado.`);
   };
 
-  const handleExportUsersCSV = () => {
-    const headers = ['ID', 'Nombre', 'Email', 'Telefono', 'Rol', 'Tienda_Asignada', 'Plan_SaaS', 'Estado_Suscripcion', 'Ciclo', 'Fecha_Fin_Periodo'];
-    const rows = users.map(u => {
-      const store = stores.find(s => s.id === u.storeId);
-      return [
-        u.id,
-        `"${u.name || ''}"`,
-        u.email || '',
-        u.phone || 'N/A',
-        u.role === 'superadmin' ? 'SuperAdmin' : 'Admin Tienda',
-        `"${store?.name || (u.storeId === 'all' ? 'Todas las tiendas' : u.storeId)}"`,
-        (u.subscription?.planId || 'pro').toUpperCase(),
-        u.subscription?.status || 'active',
-        u.subscription?.billingCycle || 'monthly',
-        u.subscription?.currentPeriodEnd ? new Date(u.subscription.currentPeriodEnd).toLocaleDateString('es-PE') : 'N/A'
-      ].join(',');
-    });
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `usuarios_saas_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showNotification('Directorio de usuarios exportado a CSV con éxito.');
+  const [isExportingUsers, setIsExportingUsers] = useState(false);
+  const handleExportUsersExcel = async () => {
+    if (isExportingUsers) return;
+    setIsExportingUsers(true);
+    try {
+      await exportUsersDirectory({ users, stores });
+      showNotification('Directorio de usuarios exportado a Excel.');
+    } catch (e) {
+      console.error('No se pudo generar el Excel', e);
+      showNotification('Error: no se pudo generar el archivo de Excel.');
+    } finally {
+      setIsExportingUsers(false);
+    }
   };
 
   return (
@@ -424,11 +411,13 @@ export const UserManagementTab: React.FC = () => {
             </button>
 
             <button
-              onClick={handleExportUsersCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 text-xs font-semibold transition-colors cursor-pointer"
+              onClick={handleExportUsersExcel}
+              disabled={isExportingUsers}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              title="Descargar directorio de usuarios en Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-neutral-500" />
-              <span>Exportar CSV</span>
+              <Download className={`w-3.5 h-3.5 ${isExportingUsers ? 'animate-bounce' : ''}`} />
+              <span>{isExportingUsers ? 'Generando…' : 'Exportar Excel'}</span>
             </button>
 
             <button
@@ -567,7 +556,7 @@ export const UserManagementTab: React.FC = () => {
                         : 'Eliminar comercio (Plan vencido o cancelado)');
 
                   return (
-                    <tr key={user.id} className={`hover:bg-neutral-50/60 transition-colors ${isSelf ? 'bg-purple-50/30' : ''}`}>
+                    <tr key={user.id} data-notif-target={user.id} className={`hover:bg-neutral-50/60 transition-colors ${isSelf ? 'bg-purple-50/30' : ''}`}>
                       {/* User Info */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
@@ -820,23 +809,21 @@ export const UserManagementTab: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Quick Reset PIN to 000000 */}
-                          <button
-                            type="button"
-                            onClick={() => setConfirmResetPinUser(user)}
-                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                              user.pinResetRequested
-                                ? 'border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200 ring-2 ring-amber-400/40 animate-pulse'
-                                : 'border-neutral-200 bg-white hover:bg-amber-50 hover:text-amber-700 text-neutral-700'
-                            }`}
-                            title={
-                              user.pinResetRequested
-                                ? '¡Solicitó Reset de PIN! Restablecer a 000000 por defecto'
-                                : 'Restablecer PIN a 000000 por defecto'
-                            }
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Restablecer PIN: solo aparece cuando el usuario lo solicitó (evita resets por error).
+                              Si no hay solicitud se deja un espacio del mismo tamaño para que las columnas no se muevan. */}
+                          {user.pinResetRequested ? (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmResetPinUser(user)}
+                              className="p-1.5 rounded-lg border transition-colors cursor-pointer border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200 ring-2 ring-amber-400/40 animate-pulse"
+                              title="¡Solicitó restablecer su PIN! Restablecer a 000000"
+                              aria-label={`Restablecer PIN de ${user.name} a 000000 (solicitado)`}
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <span className="w-[30px] h-[30px] shrink-0" aria-hidden="true" />
+                          )}
 
                           {/* Ver y Gestionar Tiendas a Cargo */}
                           <button

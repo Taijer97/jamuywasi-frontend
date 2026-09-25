@@ -62,6 +62,7 @@ export const ProductsTab: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const productFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Form state
@@ -335,8 +336,9 @@ export const ProductsTab: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingProduct) return;
 
     if (!name.trim()) {
       setFormError('El nombre del producto es obligatorio.');
@@ -387,8 +389,11 @@ export const ProductsTab: React.FC = () => {
         }))
       : undefined;
 
+    setIsSavingProduct(true);
+    setFormError(null);
+    try {
     if (editingProduct) {
-      updateProduct({
+      await updateProduct({
         ...editingProduct,
         name: name.trim(),
         slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
@@ -404,7 +409,7 @@ export const ProductsTab: React.FC = () => {
         combinations: cleanCombinations
       });
     } else {
-      addProduct({
+      await addProduct({
         name: name.trim(),
         slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
         category: category.trim(),
@@ -419,8 +424,12 @@ export const ProductsTab: React.FC = () => {
         combinations: cleanCombinations
       });
     }
-
     setModalOpen(false);
+    } catch (err: any) {
+      setFormError(err?.message || 'No se pudo guardar el producto. Revisa tu conexión e inténtalo de nuevo.');
+    } finally {
+      setIsSavingProduct(false);
+    }
   };
 
   // Deduplicación defensiva por ID para garantizar keys únicas en React
@@ -1259,9 +1268,10 @@ export const ProductsTab: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
+                  disabled={isSavingProduct || isUploadingImage}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-wait text-white font-bold cursor-pointer"
                 >
-                  {editingProduct ? 'Guardar Cambios' : 'Crear Producto'}
+                  {isSavingProduct ? 'Guardando…' : editingProduct ? 'Guardar Cambios' : 'Crear Producto'}
                 </button>
               </div>
             </form>

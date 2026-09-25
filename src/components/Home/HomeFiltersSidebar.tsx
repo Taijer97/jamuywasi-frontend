@@ -10,7 +10,9 @@ import {
   DollarSign, 
   CheckCircle2, 
   Percent,
-  ChevronDown
+  ChevronDown,
+  Search,
+  X
 } from 'lucide-react';
 
 export interface FilterState {
@@ -30,6 +32,9 @@ interface HomeFiltersSidebarProps {
   totalProductsCount: number;
   filteredCount: number;
   onReset: () => void;
+  /** Búsqueda por texto (opcional): se muestra al inicio de los filtros */
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -50,10 +55,13 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
   totalProductsCount,
   filteredCount,
   onReset,
+  searchQuery = '',
+  onSearchChange,
   isMobileOpen,
   onCloseMobile
 }) => {
   const isAnyFilterActive =
+    searchQuery.trim() !== '' ||
     filters.minPrice !== '' ||
     filters.maxPrice !== '' ||
     filters.selectedStoreIds.length > 0 ||
@@ -105,6 +113,38 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
           </button>
         )}
       </div>
+
+      {/* Búsqueda por texto */}
+      {onSearchChange && (
+        <div className="space-y-2">
+          <label htmlFor="filters-search" className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-emerald-600" />
+            Buscar
+          </label>
+          <div className="relative">
+            <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="filters-search"
+              type="search"
+              enterKeyHint="search"
+              placeholder="Producto, marca, categoría…"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white text-base sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 cursor-pointer"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Rango de Precios */}
       <div className="space-y-3">

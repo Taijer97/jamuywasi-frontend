@@ -4,11 +4,8 @@ import { MarketplaceProductCard } from '../Home/MarketplaceProductCard';
 import { HomeFiltersSidebar, FilterState } from '../Home/HomeFiltersSidebar';
 import { useDebounce } from '../../hooks/useDebounce';
 import { 
-  Search, 
-  Sparkles, 
   SlidersHorizontal, 
   Flame, 
-  Store, 
   PackageX,
   X,
   Tag,
@@ -98,14 +95,16 @@ export const MarketplaceDashboard: React.FC = () => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
+    // Búsqueda sin distinguir mayúsculas ni tildes ("cafe" encuentra "Café"); cada palabra debe aparecer
+    const norm = (v: unknown) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const terms = norm(debouncedSearchQuery).split(/\s+/).filter(Boolean);
+    const storeNames = new Map(stores.map(s => [s.id, norm(s.name)] as [string, string]));
     return products
       .filter(product => {
-        const query = debouncedSearchQuery.toLowerCase().trim();
-        const matchesSearch =
-          !query ||
-          product.name.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query) ||
-          product.category.toLowerCase().includes(query);
+        const haystack = terms.length
+          ? `${norm(product.name)} ${norm(product.description)} ${norm(product.category)} ${storeNames.get(product.storeId) || ''}`
+          : '';
+        const matchesSearch = terms.every(t => haystack.includes(t));
 
         const matchesStore =
           filters.selectedStoreIds.length === 0 ||
@@ -155,9 +154,10 @@ export const MarketplaceDashboard: React.FC = () => {
         }
         return 0;
       });
-  }, [products, searchQuery, filters, sortBy]);
+  }, [products, stores, activeStores, debouncedSearchQuery, filters, sortBy]);
 
   const activeFiltersCount =
+    (searchQuery.trim() ? 1 : 0) +
     (filters.minPrice !== '' ? 1 : 0) +
     (filters.maxPrice !== '' ? 1 : 0) +
     filters.selectedStoreIds.length +
@@ -167,58 +167,10 @@ export const MarketplaceDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-50/70 pb-20">
-      {/* Header Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-neutral-900 via-neutral-900 to-emerald-950 text-white py-10 px-4 sm:px-6 lg:px-8 xl:px-12 border-b border-neutral-800">
-        <div className="w-full space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-2">
-                <Store className="w-3.5 h-3.5" />
-                <span>Catálogo Multitienda Central</span>
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                Explora productos de todas las <span className="text-emerald-400">tiendas aliadas</span>
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/10 text-center">
-                <div className="text-xs text-neutral-400 font-medium">Tiendas</div>
-                <div className="text-lg font-black text-white">{stores.length}</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/10 text-center">
-                <div className="text-xs text-neutral-400 font-medium">Productos</div>
-                <div className="text-lg font-black text-emerald-400">{products.length}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Prominent Search Bar */}
-          <div className="pt-2">
-            <div className="relative flex items-center bg-white rounded-2xl shadow-xl shadow-black/15 p-1.5 border border-neutral-200">
-              <Search className="w-5 h-5 text-neutral-400 ml-3 shrink-0" />
-              <input
-                type="text"
-                placeholder="Buscar por producto, marca, categoría o descripción..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none bg-transparent"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="px-2.5 py-1 text-xs text-neutral-400 hover:text-neutral-700 font-bold cursor-pointer mr-1"
-                >
-                  Limpiar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+      <h1 className="sr-only">Catálogo Multitienda: productos de todas las tiendas aliadas</h1>
 
       {/* Main Content Area */}
-      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 pt-8">
+      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 pt-5 sm:pt-6">
         {/* Active Filters Pill Bar */}
         {activeFiltersCount > 0 && (
           <div className="mb-6 flex flex-wrap items-center gap-2 bg-white p-3 rounded-2xl border border-neutral-200/80 shadow-2xs">
@@ -226,6 +178,19 @@ export const MarketplaceDashboard: React.FC = () => {
               <Tag className="w-3.5 h-3.5 text-emerald-600" />
               Filtros activos ({activeFiltersCount}):
             </span>
+
+            {searchQuery.trim() && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold max-w-full">
+                <span className="truncate">Búsqueda: “{searchQuery.trim()}”</span>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="hover:text-amber-950 cursor-pointer shrink-0"
+                  aria-label="Quitar búsqueda"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            )}
 
             {filters.selectedCategory !== 'all' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
@@ -321,14 +286,17 @@ export const MarketplaceDashboard: React.FC = () => {
             totalProductsCount={products.length}
             filteredCount={filteredProducts.length}
             onReset={handleResetFilters}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             isMobileOpen={mobileFiltersOpen}
             onCloseMobile={() => setMobileFiltersOpen(false)}
           />
 
           {/* Products Feed Section */}
           <div className="flex-1 w-full space-y-4 sm:space-y-5">
-            {/* Toolbar: Results Count, Mobile filter trigger & Sort selector */}
-            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-neutral-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Toolbar fija (como la barra de filtros): solo se desplazan los productos.
+                El ::before tapa el hueco entre la cabecera y la barra para que no se vean productos pasando. */}
+            <div className="sticky top-20 z-20 before:content-[''] before:absolute before:-inset-x-2 before:-top-5 before:h-5 before:bg-neutral-50 bg-white rounded-2xl p-3 sm:p-4 border border-neutral-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 sm:gap-3">
                 <span className="text-xs font-bold text-neutral-900">
                   {filteredProducts.length} {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}

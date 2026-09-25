@@ -131,7 +131,7 @@ export const UserStoresModal: React.FC<UserStoresModalProps> = ({
         freeDeliveryThreshold: 150,
         allowPickup: true,
         paymentInstructions: 'Aceptamos transferencias, Yape y Plin.',
-        whatsappMessageTemplate: '¡Hola {store_name}! Quisiera confirmar mi pedido #{order_number}:\n{items}\nTotal: {total}',
+        whatsappMessageTemplate: '',
         themeColor: 'emerald',
         ownerId: user.id,
         owner_id: user.id

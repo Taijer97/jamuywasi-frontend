@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BRAND_LOGO_URL } from '../data/brand';
 import { useApp } from '../context/AppContext';
+import { NotificationBell } from './Common/NotificationBell';
 import {
   Store,
   LayoutDashboard,
@@ -199,6 +200,8 @@ export const Navbar: React.FC = () => {
               </button>
             ) : (
               /* User Account & Role Indicator */
+              <>
+              {(isMerchant || isSuperAdmin) && <NotificationBell />}
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -346,6 +349,7 @@ export const Navbar: React.FC = () => {
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
         </div>

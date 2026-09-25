@@ -16,7 +16,8 @@ import {
   YapePaymentConfig,
   LoginResult,
   LiveNotification,
-  UserAdminUpdateData
+  UserAdminUpdateData,
+  AppNotification
 } from '../types';
 import { SAAS_PLANS } from '../data/initialData';
 import {
@@ -25,9 +26,10 @@ import {
   getProductEffectivePrice
 } from '../utils/whatsapp';
 import { compressImageFile } from '../utils/imageCompressor';
-import { api, mapProductFromBackend, mapBannerFromBackend, mapStoreFromBackend, mapOrderFromBackend, mergeUserFromBackend } from '../services/api';
+import { api, mapProductFromBackend, mapBannerFromBackend, mapStoreFromBackend, mapOrderFromBackend, mergeUserFromBackend, notificationsApi, mapNotificationFromBackend } from '../services/api';
 import { useRealtimeWebSocket, WebSocketMessage } from '../hooks/useRealtimeWebSocket';
 import { audioNotification } from '../utils/audioNotification';
+import { readPublicCache, writePublicCache } from '../utils/publicCache';
 
 const DEFAULT_YAPE_CONFIG: YapePaymentConfig = {
   phone: '925763903',
@@ -55,7 +57,7 @@ const DEFAULT_FALLBACK_STORE: StoreConfig = {
   freeDeliveryThreshold: 150,
   allowPickup: true,
   paymentInstructions: 'Aceptamos Yape, Plin y transferencias bancarias.',
-  whatsappMessageTemplate: '¡Hola {store_name}! Quisiera confirmar mi pedido #{order_number}:\n{items}\nTotal: {total}',
+  whatsappMessageTemplate: '',
   themeColor: 'emerald'
 };
 
@@ -172,14 +174,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialUrlState = getInitialUrlParams();
 
   // Live State from Backend
-  const [stores, setStores] = useState<StoreConfig[]>([]);
+  // Datos públicos: arrancan con la caché local (se ven al instante) y luego se reemplazan con los del servidor
+  const [stores, setStores] = useState<StoreConfig[]>(() => readPublicCache()?.stores || []);
   const [currentStoreId, setCurrentStoreId] = useState<string>(() => {
     return initialUrlState.store || localStorage.getItem(STORAGE_KEY_PREFIX + 'currentStoreId') || '';
   });
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY_PREFIX + 'currentUserId') || '';
   });
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => readPublicCache()?.products || []);
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PREFIX + 'orders');
@@ -197,9 +200,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [];
     }
   });
-  const [banners, setBanners] = useState<PromotionalBanner[]>([]);
+  const [banners, setBanners] = useState<PromotionalBanner[]>(() => readPublicCache()?.banners || []);
   const [myStores, setMyStores] = useState<StoreConfig[]>([]);
-  const [yapeConfig, setYapeConfig] = useState<YapePaymentConfig>(DEFAULT_YAPE_CONFIG);
+  const [yapeConfig, setYapeConfig] = useState<YapePaymentConfig>(() => readPublicCache()?.yapeConfig || DEFAULT_YAPE_CONFIG);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
   // User Authentication & RBAC (memoized to prevent Temporal Dead Zone issues)
@@ -269,6 +272,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Ref para evitar bucle entre popstate y pushState
   const isPopStateNavigating = React.useRef(false);
+  // Cuando es true, el próximo cambio de URL usa replaceState (no ensucia el historial).
+  // Empieza en true: la primera normalización de la URL de entrada (p. ej. ?view=superadmin -> /superadmin)
+  // reemplaza en vez de agregar, así el botón Atrás no vuelve a una dirección que redirige.
+  const replaceNextUrl = React.useRef(true);
 
   // Auth & Registration modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -393,6 +400,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
+  // ===================== Notificaciones (campanita) =====================
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  // Elemento a resaltar tras abrir una notificación (pedido, usuario...)
+  const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
+
+  const refreshNotifications = useCallback(async () => {
+    const data = await notificationsApi.list(30);
+    if (data) {
+      setNotifications(data.items);
+      setUnreadNotifications(data.unread);
+    }
+  }, []);
+
+  // Abrir una notificación: marcarla como leída y llevar al lugar exacto
+  const openNotification = useCallback((n: AppNotification) => {
+    if (!n.isRead) {
+      setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+      setUnreadNotifications(c => Math.max(0, c - 1));
+      notificationsApi.markRead(n.id);
+    }
+    const link = n.link || {};
+    if (link.view === 'merchant') {
+      if (n.storeId) setCurrentStoreId(n.storeId);
+      setActiveView('merchant');
+      if (link.tab) setMerchantTab(link.tab as any);
+    } else if (link.view === 'superadmin') {
+      setActiveView('superadmin');
+      if (link.adminTab) setAdminTab(link.adminTab as any);
+    }
+    if (link.targetId) setPendingHighlight(link.targetId);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications(prev => prev.map(x => ({ ...x, isRead: true })));
+    setUnreadNotifications(0);
+    notificationsApi.markAllRead();
+  }, []);
+
+  // Cargar notificaciones al iniciar sesión (y limpiar al salir)
+  useEffect(() => {
+    if (currentUserId) refreshNotifications();
+    else { setNotifications([]); setUnreadNotifications(0); }
+  }, [currentUserId, refreshNotifications]);
+
+  // Resaltar (y centrar) la fila del pedido / usuario cuando termina de dibujarse la pestaña
+  useEffect(() => {
+    if (!pendingHighlight) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.querySelector(`[data-notif-target="${CSS.escape(pendingHighlight)}"]`) as HTMLElement | null;
+      if (el || ++tries > 40) {
+        clearInterval(timer);
+        setPendingHighlight(null);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('notif-highlight');
+          setTimeout(() => el.classList.remove('notif-highlight'), 3500);
+        }
+      }
+    }, 150);
+    return () => clearInterval(timer);
+  }, [pendingHighlight]);
+
   const logout = useCallback(() => {
     api.logout();
     setCurrentUserId('');
@@ -401,6 +473,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // (pedidos con datos de clientes, lista de usuarios del admin)
     setOrders([]);
     setUsers([]);
+    setNotifications([]);
+    setUnreadNotifications(0);
     try {
       localStorage.removeItem(STORAGE_KEY_PREFIX + 'currentUserId');
       localStorage.removeItem(STORAGE_KEY_PREFIX + 'currentStoreId');
@@ -432,6 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // los eventos emitidos mientras estábamos desconectados se pierden, así que pedimos el estado actual.
   const resyncAfterReconnect = useCallback(async () => {
     const cur = currentUserRef.current;
+    if (cur) refreshNotifications();  // notificaciones que llegaron mientras no había conexión
     const isAdmin = cur?.role === 'superadmin';
     const upsert = <T extends { id: string }>(prev: T[], fresh: T[]) => {
       const map = new Map(prev.map(x => [x.id, x] as [string, T]));
@@ -447,6 +522,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (freshProducts) setProducts(prev => upsert(prev, freshProducts));
       if (freshStores) setStores(prev => upsert(prev, freshStores));
       if (freshBanners) setBanners(freshBanners);
+      // Actualizar la caché pública (solo con respuestas públicas, nunca con las del admin)
+      if (!isAdmin && freshProducts && freshStores && freshBanners) {
+        writePublicCache({ stores: freshStores, products: freshProducts, banners: freshBanners, yapeConfig: readPublicCache()?.yapeConfig || null });
+      }
       if (cur) {
         const freshOrders = await api.getAllOrders().catch(() => null);
         // Reemplazar (no mezclar) para no arrastrar pedidos de otra sesión
@@ -524,21 +603,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           return [newOrder, ...prev];
         });
-        // El backend solo envía ORDER_CREATED al dueño de la tienda y al superadmin,
-        // así que si llegó aquí es para este usuario.
-        if (currentUserRef.current) {
-          audioNotification.playOrderChime();
-          addLiveNotification({
-            title: `¡Nuevo Pedido #${newOrder.orderNumber}!`,
-            message: `${newOrder.customerName} - Total: S/ ${(newOrder.total || 0).toFixed(2)}`,
-            type: 'order',
-            actionLabel: 'Ver Pedido',
-            onAction: () => {
-              setActiveView('merchant');
-              setMerchantTab('orders');
-            }
-          });
-        }
+        // El aviso (sonido + ventana + campanita) llega como NOTIFICATION_NEW
         break;
       }
       case 'ORDER_UPDATED': {
@@ -558,19 +623,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (existing) return prev.map(u => u.id === regRaw.id ? mergeUserFromBackend(u, regRaw) : u);
           return [regUser, ...prev];
         });
-        if (currentUserRef.current?.role === 'superadmin') {
-          audioNotification.playNotificationAlert();
-          addLiveNotification({
-            title: 'Nuevo Comerciante Registrado',
-            message: msg.data.message || `${regUser.name} ha registrado una tienda`,
-            type: 'user',
-            actionLabel: 'Ver Usuarios',
-            onAction: () => {
-              setActiveView('superadmin');
-              setAdminTab('users');
-            }
-          });
-        }
+        // El aviso al superadmin llega como NOTIFICATION_NEW (APPROVAL_PENDING)
         break;
       }
       case 'USER_UPDATED': {
@@ -584,17 +637,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setPendingApprovalModalOpen(false);
             setPlanPurchaseModalOpen(false);
             try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); } catch {}
-            audioNotification.playPaymentSuccess();
-            addLiveNotification({
-              title: '¡Cuenta Aprobada!',
-              message: 'Tu cuenta ha sido aprobada. ¡Ya puedes configurar tu catálogo y vender!',
-              type: 'user',
-              actionLabel: 'Ir al Panel',
-              onAction: () => {
-                setActiveView('merchant');
-                setMerchantTab('overview');
-              }
-            });
+            // El aviso "¡Tu tienda fue aprobada!" llega como NOTIFICATION_NEW
           }
         }
         break;
@@ -618,19 +661,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const uData = msg.data.user;
           setUsers(prev => prev.map(u => u.id === uData.id ? mergeUserFromBackend(u, uData) : u));
         }
-        if (currentUserRef.current?.role === 'superadmin') {
-          audioNotification.playNotificationAlert();
-          addLiveNotification({
-            title: 'Solicitud de Restablecimiento de PIN',
-            message: msg.data.message || 'Un comerciante ha solicitado resetear su PIN de acceso.',
-            type: 'pin',
-            actionLabel: 'Gestionar en SuperAdmin',
-            onAction: () => {
-              setActiveView('superadmin');
-              setAdminTab('users');
-            }
-          });
-        }
+        // El aviso al superadmin llega como NOTIFICATION_NEW (PIN_RESET_REQUESTED)
         break;
       }
       case 'PIN_RESET_COMPLETED': {
@@ -720,17 +751,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setPendingApprovalModalOpen(false);
           setPlanPurchaseModalOpen(false);
           try { confetti({ particleCount: 140, spread: 90, origin: { y: 0.6 } }); } catch {}
-          audioNotification.playPaymentSuccess();
-          addLiveNotification({
-            title: '¡Suscripción Activada!',
-            message: `Tu plan ${plan?.toUpperCase() || ''} ha sido verificado y tu tienda está en vivo.`,
-            type: 'payment',
-            actionLabel: 'Ver Mi Tienda',
-            onAction: () => {
-              setActiveView('merchant');
-            }
-          });
+          // El aviso "Plan activo" llega como NOTIFICATION_NEW (PLAN_ACTIVATED)
         }
+        break;
+      }
+
+      // --- NOTIFICACIONES (campanita) ---
+      case 'NOTIFICATION_NEW': {
+        if (!msg.data?.id) return;
+        const n = mapNotificationFromBackend(msg.data);
+        let isNew = true;
+        setNotifications(prev => {
+          if (prev.some(x => x.id === n.id)) { isNew = false; return prev; }
+          return [n, ...prev].slice(0, 50);
+        });
+        if (!isNew) break;
+        setUnreadNotifications(c => c + 1);
+
+        // Sonido según el tipo
+        if (n.type === 'ORDER_NEW') audioNotification.playOrderChime();
+        else if (n.type === 'PLAN_ACTIVATED' || n.type === 'ACCOUNT_APPROVED' || n.type === 'PAYMENT_RECEIVED') audioNotification.playPaymentSuccess();
+        else audioNotification.playNotificationAlert();
+
+        // Ventana emergente dentro de la app
+        const toastType: LiveNotification['type'] =
+          n.type === 'ORDER_NEW' ? 'order'
+          : n.type === 'PIN_RESET_REQUESTED' ? 'pin'
+          : n.type === 'APPROVAL_PENDING' ? 'user'
+          : (n.type === 'PLAN_EXPIRING' || n.type === 'PLAN_EXPIRED' || n.type === 'MERCHANT_PLAN_EXPIRED' || n.type === 'PAYMENT_MANUAL_REVIEW' || n.type === 'ACCOUNT_SUSPENDED') ? 'warning'
+          : 'payment';
+        addLiveNotification({ title: n.title, message: n.message, type: toastType, actionLabel: 'Ver', onAction: () => openNotification(n) });
+
+        // Notificación del sistema si la pestaña está en segundo plano (y el usuario dio permiso)
+        try {
+          if (typeof document !== 'undefined' && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+            const sys = new Notification(n.title, { body: n.message, icon: '/brand/icon-192.png', tag: n.id });
+            sys.onclick = () => { window.focus(); openNotification(n); sys.close(); };
+          }
+        } catch { /* algunos navegadores móviles no permiten crear notificaciones así */ }
         break;
       }
 
@@ -746,20 +804,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loadData = useCallback(async () => {
     setIsLoadingData(true);
     try {
+      // null = falló la petición (sin red / servidor caído): se conserva lo que había (caché)
       const [fetchedStores, fetchedProducts, fetchedBanners, meUser, fetchedYapeConfig] = await Promise.all([
-        api.getStores().catch(() => []),
-        api.getProducts().catch(() => []),
-        api.getBanners().catch(() => []),
+        api.getStores().catch(() => null),
+        api.getProducts().catch(() => null),
+        api.getBanners().catch(() => null),
         api.getCurrentUser().catch(() => null),
         api.getYapeConfig().catch(() => null)
       ]);
+
+      // Guardar SOLO las respuestas públicas (antes de mezclar datos del panel) para el próximo arranque
+      if (fetchedStores && fetchedProducts && fetchedBanners) {
+        writePublicCache({
+          stores: fetchedStores,
+          products: fetchedProducts,
+          banners: fetchedBanners,
+          yapeConfig: fetchedYapeConfig && fetchedYapeConfig.phone ? fetchedYapeConfig : null,
+        });
+      }
 
       if (fetchedYapeConfig && fetchedYapeConfig.phone) {
         setYapeConfig(fetchedYapeConfig);
       }
 
-      if (fetchedStores && fetchedStores.length > 0) {
+      if (fetchedStores) {
+        // Reemplaza la caché aunque venga vacía (p. ej. se despublicaron todas las tiendas)
         setStores(fetchedStores);
+      }
+      if (fetchedStores && fetchedStores.length > 0) {
         setCurrentStoreId(prevId => {
           // Si la URL inicial traía una tienda (por slug o id), buscar coincidencia
           const initialUrlStore = initialUrlState.store;
@@ -777,7 +849,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (fetchedProducts) {
-        const uniqueProducts = Array.from(new Map(fetchedProducts.map(p => [p.id, p] as [string, Product])).values());
+        const uniqueProducts: Product[] = Array.from(new Map<string, Product>(fetchedProducts.map(p => [p.id, p] as [string, Product])).values());
         setProducts(uniqueProducts);
 
         // Si la URL inicial traía un producto específico (?product=prod_xxx o slug)
@@ -792,7 +864,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (fetchedBanners) {
-        const uniqueBanners = Array.from(new Map(fetchedBanners.map(b => [b.id, b] as [string, PromotionalBanner])).values());
+        const uniqueBanners: PromotionalBanner[] = Array.from(new Map<string, PromotionalBanner>(fetchedBanners.map(b => [b.id, b] as [string, PromotionalBanner])).values());
         setBanners(uniqueBanners);
       }
 
@@ -927,6 +999,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [products]);
 
+  const redirectToHome = useCallback(() => {
+    replaceNextUrl.current = true;
+    setViewingStoreCatalog(false);
+    setSelectedProductForModal(null);
+    setActiveView('home');
+    // Si ya estábamos en 'home' el efecto de URL no se dispara: limpiar la URL directamente
+    if (typeof window !== 'undefined' && (window.location.pathname !== '/' || window.location.search)) {
+      window.history.replaceState({ path: '/' }, '', '/');
+    }
+  }, []);
+
   // Sincronizar URL cada vez que cambie el estado de navegación
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -979,7 +1062,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newUrl = queryString ? `${targetPath}?${queryString}` : targetPath;
     const currentFullUrl = `${window.location.pathname}${window.location.search}`;
 
-    if (newUrl !== currentFullUrl) {
+    if (replaceNextUrl.current) {
+      replaceNextUrl.current = false;
+      if (newUrl !== currentFullUrl) window.history.replaceState({ path: newUrl }, '', newUrl);
+    } else if (newUrl !== currentFullUrl) {
       window.history.pushState({ path: newUrl }, '', newUrl);
     }
   }, [
@@ -1052,10 +1138,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quality: 0.84,
       format: 'image/webp'
     });
-    return await api.uploadImage(compressed, folder);
+    // Miniatura de 400 px para las tarjetas del catálogo (se genera en el navegador, no en el servidor)
+    let thumb: File | null = null;
+    if (folder === 'products' && compressed.type === 'image/webp') {
+      try {
+        thumb = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.8, format: 'image/webp' });
+        if (thumb.type !== 'image/webp') thumb = null;
+      } catch { thumb = null; }
+    }
+    return await api.uploadImage(compressed, folder, thumb);
   };
 
   // Cart operations
+  // Un pedido por WhatsApp va a UN solo negocio: el carrito solo admite productos de una tienda.
+  const [pendingCartItem, setPendingCartItem] = useState<{
+    product: Product; quantity: number; selectedVariants: Record<string, string>; notes?: string; unitPrice?: number;
+  } | null>(null);
+
   const addToCart = (
     product: Product,
     quantity: number,
@@ -1063,22 +1162,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     notes?: string,
     unitPrice?: number
   ) => {
+    const cartStoreIdNow = cart[0]?.product.storeId;
+    if (cartStoreIdNow && cartStoreIdNow !== product.storeId) {
+      // Producto de otra tienda: preguntar antes de mezclar (no se agrega todavía)
+      setPendingCartItem({ product, quantity, selectedVariants, notes, unitPrice });
+      return;
+    }
+    addItemToCart(product, quantity, selectedVariants, notes, unitPrice);
+  };
+
+  const addItemToCart = (
+    product: Product,
+    quantity: number,
+    selectedVariants: Record<string, string> = {},
+    notes?: string,
+    unitPrice?: number,
+    replaceCart = false
+  ) => {
     const effectivePrice = (typeof unitPrice === 'number' && unitPrice > 0)
       ? unitPrice
       : getProductEffectivePrice(product, selectedVariants);
 
-    setCart(prev => {
+    setCart(prevCart => {
+      // Seguridad extra: nunca mezclar tiendas aunque el estado haya cambiado entre renders
+      const prev = replaceCart || (prevCart[0] && prevCart[0].product.storeId !== product.storeId) ? [] : prevCart;
       const variantKey = JSON.stringify(selectedVariants);
       const existingIdx = prev.findIndex(
         item => item.product.id === product.id && JSON.stringify(item.selectedVariants) === variantKey
       );
 
       if (existingIdx > -1) {
-        const updated = [...prev];
-        updated[existingIdx].quantity += quantity;
-        updated[existingIdx].unitPrice = effectivePrice;
-        if (notes) updated[existingIdx].notes = notes;
-        return updated;
+        // Copia inmutable (antes se modificaba el objeto del estado anterior)
+        return prev.map((item, i) => i !== existingIdx ? item : {
+          ...item,
+          quantity: item.quantity + quantity,
+          unitPrice: effectivePrice,
+          notes: notes || item.notes,
+        });
       }
 
       return [
@@ -1112,6 +1232,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const clearCart = () => {
     setCart([]);
   };
+
+  const confirmCartSwitch = () => {
+    if (!pendingCartItem) return;
+    const { product, quantity, selectedVariants, notes, unitPrice } = pendingCartItem;
+    setPendingCartItem(null);
+    addItemToCart(product, quantity, selectedVariants, notes, unitPrice, true);
+  };
+
+  const cancelCartSwitch = () => setPendingCartItem(null);
+
+  // Tienda del carrito: la del primer producto (no la tienda que se esté mirando en pantalla)
+  const cartStoreId = cart[0]?.product.storeId || '';
+  const cartStoreFound = useMemo(
+    () => (cartStoreId ? (stores.find(s => s.id === cartStoreId) || myStores.find(s => s.id === cartStoreId)) : undefined),
+    [cartStoreId, stores, myStores]
+  );
+  const cartStore: StoreConfig = cartStoreFound || currentStore;
+  const cartStoreAvailable = !cartStoreId || Boolean(cartStoreFound);
+  const pendingCartSwitch = pendingCartItem ? {
+    fromStoreName: cartStore.name,
+    toStoreName: stores.find(s => s.id === pendingCartItem.product.storeId)?.name || 'otra tienda',
+    productName: pendingCartItem.product.name,
+  } : null;
 
   const trackProductVisit = (productId: string) => {
     setProducts(prev =>
@@ -1161,16 +1304,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // WhatsApp Order Submission with MySQL persistence
-  const submitOrderToWhatsApp = (customerData: CustomerCheckoutData) => {
+  // Pedido: primero se registra en el servidor (valida DNI, nombre, teléfono, stock y precios);
+  // solo si se guardó se muestra el modal de éxito con el botón para avisar a la tienda por WhatsApp.
+  const submitOrderToWhatsApp = async (customerData: CustomerCheckoutData): Promise<
+    { ok: true; order: Order; whatsappUrl: string } | { ok: false; error: string }
+  > => {
+    // El pedido se envía a la tienda de los productos del carrito, no a la que se esté viendo
+    const orderStore = cartStore;
+    const cartSnapshot = [...cart];
     const getItemUnitPrice = (item: CartItem) =>
       (typeof item.unitPrice === 'number' && item.unitPrice > 0)
         ? item.unitPrice
         : getProductEffectivePrice(item.product, item.selectedVariants);
 
-    const subtotal = cart.reduce((acc, item) => acc + getItemUnitPrice(item) * item.quantity, 0);
-    const isFreeDelivery = customerData.deliveryType === 'pickup' || subtotal >= currentStore.freeDeliveryThreshold;
-    const deliveryFee = isFreeDelivery ? 0 : currentStore.deliveryFee;
+    const subtotal = cartSnapshot.reduce((acc, item) => acc + getItemUnitPrice(item) * item.quantity, 0);
+    const isFreeDelivery = customerData.deliveryType === 'pickup' || subtotal >= orderStore.freeDeliveryThreshold;
+    const deliveryFee = isFreeDelivery ? 0 : orderStore.deliveryFee;
     const total = subtotal + deliveryFee;
 
     // 6 caracteres aleatorios: evita números repetidos (el backend confirma que sea único)
@@ -1178,93 +1327,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
     const orderNumber = `PED-${randomSuffix}`;
 
-    const message = generateWhatsAppOrderMessage(
-      currentStore,
-      orderNumber,
-      customerData,
-      cart,
-      subtotal,
-      deliveryFee,
-      total
-    );
+    const items = cartSnapshot.map(item => {
+      const unitPrice = getItemUnitPrice(item);
+      return {
+        productId: item.product.id,
+        productName: item.product.name,
+        price: unitPrice,
+        quantity: item.quantity,
+        selectedVariants: item.selectedVariants,
+        subtotal: unitPrice * item.quantity,
+        imageUrl: item.product.imageUrl
+      };
+    });
+    const address = customerData.deliveryType === 'pickup' ? customerData.address || 'Recojo en tienda' : customerData.address;
+    const draftMessage = generateWhatsAppOrderMessage(orderStore, orderNumber, customerData, cartSnapshot, subtotal, deliveryFee, total);
 
-    const whatsappUrl = buildWhatsAppLink(currentStore.countryCode, currentStore.phone, message);
+    let persisted: Order;
+    try {
+      persisted = await api.createOrder({
+        storeId: orderStore.id,
+        orderNumber,
+        customerName: customerData.name,
+        customerDni: customerData.dni,
+        customerPhone: customerData.phone,
+        customerAddress: address,
+        notes: customerData.notes,
+        deliveryType: customerData.deliveryType,
+        paymentMethod: customerData.paymentMethod,
+        items,
+        subtotal,
+        deliveryFee,
+        total,
+        whatsappMessageSent: draftMessage
+      });
+    } catch (err) {
+      const msg = err instanceof Error && err.message ? err.message : 'No se pudo registrar tu pedido.';
+      const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      return { ok: false, error: offline ? 'No tienes conexión a internet. Revisa tu conexión e inténtalo de nuevo.' : msg };
+    }
 
-    const newOrder: Order = {
-      id: `ord_${Date.now()}`,
-      orderNumber,
-      storeId: currentStore.id,
-      customerName: customerData.name,
-      customerPhone: customerData.phone,
-      customerAddress: customerData.deliveryType === 'pickup' ? 'Retiro en local' : customerData.address,
-      notes: customerData.notes,
-      deliveryType: customerData.deliveryType,
-      paymentMethod: customerData.paymentMethod,
-      items: cart.map(item => {
-        const unitPrice = getItemUnitPrice(item);
-        return {
-          productId: item.product.id,
-          productName: item.product.name,
-          price: unitPrice,
-          quantity: item.quantity,
-          selectedVariants: item.selectedVariants,
-          subtotal: unitPrice * item.quantity,
-          imageUrl: item.product.imageUrl
-        };
-      }),
-      subtotal,
-      deliveryFee,
-      total,
-      status: 'pending_whatsapp',
-      createdAt: new Date().toISOString(),
-      whatsappMessageSent: message
-    };
+    // El mensaje final usa el número y los montos que confirmó el servidor
+    const message = (persisted.orderNumber === orderNumber && Math.abs(persisted.total - total) < 0.01)
+      ? draftMessage
+      : generateWhatsAppOrderMessage(orderStore, persisted.orderNumber, customerData, cartSnapshot,
+          persisted.subtotal, persisted.deliveryFee, persisted.total);
+    const whatsappUrl = buildWhatsAppLink(orderStore.countryCode, orderStore.phone, message);
+    const finalOrder: Order = { ...persisted, whatsappMessageSent: message };
 
-    // Save order in state
-    setOrders(prev => [newOrder, ...prev]);
-    setLastCompletedOrder(newOrder);
+    setOrders(prev => [finalOrder, ...prev.filter(o => o.id !== finalOrder.id)]);
+    setLastCompletedOrder(finalOrder);
     setCart([]);
     setCartDrawerOpen(false);
     setOrderSuccessModalOpen(true);
 
-    // Persist asynchronously to backend MySQL
-    api.createOrder({
-      storeId: currentStore.id,
-      orderNumber,
-      customerName: customerData.name,
-      customerPhone: customerData.phone,
-      customerAddress: customerData.deliveryType === 'pickup' ? 'Retiro en local' : customerData.address,
-      notes: customerData.notes,
-      deliveryType: customerData.deliveryType,
-      paymentMethod: customerData.paymentMethod,
-      items: newOrder.items,
-      subtotal,
-      deliveryFee,
-      total,
-      whatsappMessageSent: message
-    }).then(persisted => {
-      if (persisted) {
-        setOrders(prev => [persisted, ...prev.filter(o => o.id !== newOrder.id && o.id !== persisted.id)]);
-      }
-    }).catch(err => console.warn('Could not persist order to backend:', err));
-
-    // Launch celebratory confetti
     try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     } catch {
       // silent fallback
     }
 
-    // Attempt to open WhatsApp in new tab
-    if (typeof window !== 'undefined') {
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    }
-
-    return { order: newOrder, whatsappUrl };
+    return { ok: true, order: finalOrder, whatsappUrl };
   };
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
@@ -1277,39 +1399,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Merchant CRUD Actions with Backend Connection
+  // Si el servidor no guarda el producto (límite del plan, sin conexión…) se lanza el error
+  // para que el formulario lo muestre. Antes se creaba una copia "local" que parecía guardada y no lo estaba.
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'storeId'>) => {
-    try {
-      const created = await api.createProduct({
-        ...productData,
-        storeId: currentStore.id
-      });
-      setProducts(prev => {
-        if (prev.some(p => p.id === created.id)) {
-          return prev.map(p => p.id === created.id ? created : p);
-        }
-        return [created, ...prev];
-      });
-    } catch (err) {
-      console.error('Error al agregar producto en backend:', err);
-      // Fallback local
-      const newProduct: Product = {
-        ...productData,
-        id: `prod_${Date.now()}`,
-        storeId: currentStore.id,
-        createdAt: new Date().toISOString()
-      };
-      setProducts(prev => (prev.some(p => p.id === newProduct.id) ? prev : [newProduct, ...prev]));
-    }
+    const created = await api.createProduct({
+      ...productData,
+      storeId: currentStore.id
+    });
+    setProducts(prev => {
+      if (prev.some(p => p.id === created.id)) {
+        return prev.map(p => p.id === created.id ? created : p);
+      }
+      return [created, ...prev];
+    });
   };
 
   const updateProduct = async (updatedProduct: Product) => {
-    try {
-      const saved = await api.updateProduct(updatedProduct);
-      setProducts(prev => prev.map(p => p.id === saved.id ? saved : p));
-    } catch (err) {
-      console.error('Error al actualizar producto en backend:', err);
-      setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-    }
+    const saved = await api.updateProduct(updatedProduct);
+    setProducts(prev => prev.map(p => p.id === saved.id ? saved : p));
   };
 
   const deleteProduct = async (productId: string) => {
@@ -1417,7 +1524,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       freeDeliveryThreshold: storeData.freeDeliveryThreshold ?? 150,
       allowPickup: storeData.allowPickup ?? true,
       paymentInstructions: storeData.paymentInstructions || 'Aceptamos Yape, Plin, transferencias bancarias y efectivo.',
-      whatsappMessageTemplate: '¡Hola {store_name}! Quisiera confirmar mi pedido #{order_number}:\n{items}\nTotal: {total}',
+      whatsappMessageTemplate: '',
       themeColor: 'emerald'
     };
 
@@ -1972,6 +2079,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lastCompletedOrder,
         orderSuccessModalOpen,
         isLoadingData,
+        redirectToHome,
         uploadImage,
         authModalOpen,
         authModalMode,
@@ -2022,6 +2130,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         marketplaceStoreFilter,
         setMarketplaceStoreFilter,
         addToCart,
+        cartStore,
+        cartStoreAvailable,
+        notifications,
+        unreadNotifications,
+        openNotification,
+        markAllNotificationsRead,
+        pendingCartSwitch,
+        confirmCartSwitch,
+        cancelCartSwitch,
         updateCartQuantity,
         removeFromCart,
         clearCart,

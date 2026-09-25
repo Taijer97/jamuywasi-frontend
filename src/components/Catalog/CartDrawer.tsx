@@ -16,7 +16,8 @@ import {
   AlertCircle,
   MapPin,
   Info,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react';
 import {
   formatPrice,
@@ -25,6 +26,23 @@ import {
   findMatchingCombination
 } from '../../utils/whatsapp';
 import { DEFAULT_PRODUCT_IMAGE } from '../../data/initialData';
+import {
+  PHONE_COUNTRIES, validateDni, validateFullName, validatePhone, normalizeName
+} from '../../utils/checkoutValidation';
+import { thumbUrl } from '../../utils/imageUrls';
+
+const inputCls = 'w-full px-3 py-2 text-base sm:text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors';
+const errCls = '!border-rose-400 focus:!ring-rose-500/20';
+
+const FieldHint: React.FC<{ error?: string | null; hint?: string }> = ({ error, hint }) =>
+  error ? (
+    <p className="mt-1 text-[11px] text-rose-600 flex items-start gap-1" role="alert">
+      <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+      <span>{error}</span>
+    </p>
+  ) : hint ? (
+    <p className="mt-1 text-[10px] text-neutral-500">{hint}</p>
+  ) : null;
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -34,7 +52,9 @@ export const CartDrawer: React.FC = () => {
     updateCartQuantity,
     removeFromCart,
     clearCart,
-    currentStore,
+    cartStore: currentStore,   // tienda de los productos del carrito (no la que se está mirando)
+    cartStoreAvailable,
+    openStoreCatalog,
     submitOrderToWhatsApp
   } = useApp();
 
@@ -59,7 +79,11 @@ export const CartDrawer: React.FC = () => {
 
   // Customer Checkout Form State
   const [customerName, setCustomerName] = useState('');
+  const [customerDni, setCustomerDni] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('51');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>(() => {
     if (!canDelivery && canPickup) return 'pickup';
     return 'delivery';
@@ -103,30 +127,44 @@ export const CartDrawer: React.FC = () => {
   const amountNeededForFree = Math.max(0, currentStore.freeDeliveryThreshold - subtotal);
   const freeProgress = Math.min(100, Math.round((subtotal / currentStore.freeDeliveryThreshold) * 100));
 
-  const handleCheckout = () => {
-    if (!customerName.trim()) {
-      setValidationError('Por favor ingresa tu nombre completo.');
-      return;
-    }
-    if (!customerPhone.trim()) {
-      setValidationError('Por favor ingresa tu número de WhatsApp para contactarte.');
-      return;
-    }
-    if (deliveryType === 'delivery' && !address.trim()) {
-      setValidationError('Por favor ingresa tu dirección para el envío.');
+  const country = PHONE_COUNTRIES.find(c => c.code === phoneCountry) || PHONE_COUNTRIES[0];
+  const fieldErrors = {
+    name: validateFullName(customerName),
+    dni: validateDni(customerDni),
+    phone: validatePhone(customerPhone, country),
+    address: deliveryType === 'delivery' && canDelivery && address.trim().length < 8
+      ? 'Escribe tu dirección completa (calle, número, distrito y una referencia).'
+      : null,
+  };
+  const showError = (k: keyof typeof fieldErrors) => (touched[k] ? fieldErrors[k] : null);
+
+  const handleCheckout = async () => {
+    if (isSubmitting) return;
+    setTouched({ name: true, dni: true, phone: true, address: true });
+    const firstError = fieldErrors.name || fieldErrors.dni || fieldErrors.phone || fieldErrors.address;
+    if (firstError) {
+      setValidationError('Revisa los datos marcados en rojo para continuar.');
       return;
     }
 
     setValidationError(null);
-
-    submitOrderToWhatsApp({
-      name: customerName.trim(),
-      phone: customerPhone.trim(),
+    setIsSubmitting(true);
+    const result = await submitOrderToWhatsApp({
+      name: normalizeName(customerName),
+      dni: customerDni.trim(),
+      phone: `+${country.code}${customerPhone.replace(/\D/g, '')}`,
       deliveryType,
       address: deliveryType === 'delivery' ? address.trim() : pickupAddressText,
       paymentMethod,
       notes: notes.trim()
     });
+    setIsSubmitting(false);
+    if ('error' in result) {
+      setValidationError(result.error);
+      return;
+    }
+    // Pedido registrado: se limpian los datos del formulario
+    setCustomerName(''); setCustomerDni(''); setCustomerPhone(''); setAddress(''); setNotes(''); setTouched({});
   };
 
   // Preview message generated in real-time
@@ -134,8 +172,9 @@ export const CartDrawer: React.FC = () => {
     currentStore,
     'PED-XXXX',
     {
-      name: customerName || 'Nombre del Cliente',
-      phone: customerPhone || '+52 55 ...',
+      name: normalizeName(customerName) || 'Nombre Apellido Apellido',
+      dni: customerDni || '12345678',
+      phone: customerPhone ? `+${country.code} ${customerPhone}` : `+${country.code} ...`,
       deliveryType,
       address: deliveryType === 'delivery' ? (address || 'Dirección de entrega') : pickupAddressText,
       paymentMethod,
@@ -149,15 +188,27 @@ export const CartDrawer: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="absolute inset-y-0 right-0 max-w-full flex sm:pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full">
           {/* Drawer Header */}
           <div className="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/50">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-neutral-900">Tu Pedido</h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                {cart.reduce((t, i) => t + i.quantity, 0)} ítems
-              </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-neutral-900">Tu Pedido</h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                  {cart.reduce((t, i) => t + i.quantity, 0)} ítems
+                </span>
+              </div>
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setCartDrawerOpen(false); openStoreCatalog(currentStore.id); }}
+                  className="mt-0.5 text-xs text-neutral-600 hover:text-emerald-700 truncate max-w-[16rem] text-left cursor-pointer"
+                  title="Ver la tienda"
+                >
+                  Pedido para <strong className="text-neutral-900">{currentStore.name}</strong>
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -230,7 +281,7 @@ export const CartDrawer: React.FC = () => {
                   <div className="divide-y divide-neutral-100">
                     {cart.map(item => {
                       const matchComb = findMatchingCombination(item.product.combinations, item.selectedVariants);
-                      const displayImg = matchComb?.imageUrl || item.product.imageUrl || DEFAULT_PRODUCT_IMAGE;
+                      const displayImg = matchComb?.imageUrl || thumbUrl(item.product.imageUrl) || DEFAULT_PRODUCT_IMAGE;
 
                       return (
                         <div key={item.id} className="py-3 flex items-start gap-3">
@@ -401,32 +452,77 @@ export const CartDrawer: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Name & Phone */}
-                  <div className="space-y-2">
+                  {/* Datos del cliente (validados también en el servidor) */}
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-[11px] font-medium text-neutral-700 mb-1">
+                      <label htmlFor="co-name" className="block text-[11px] font-medium text-neutral-700 mb-1">
                         Tu nombre completo <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        id="co-name"
                         type="text"
-                        placeholder="Ej. María Fernández"
+                        autoComplete="name"
+                        maxLength={120}
+                        placeholder="Nombre, apellido paterno y materno"
                         value={customerName}
-                        onChange={e => setCustomerName(e.target.value)}
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+                        onChange={e => setCustomerName(e.target.value.replace(/[^A-Za-zÀ-ÿÑñ' .-]/g, ''))}
+                        onBlur={() => setTouched(t => ({ ...t, name: true }))}
+                        aria-invalid={Boolean(showError('name'))}
+                        className={`${inputCls} ${showError('name') ? errCls : ''}`}
                       />
+                      <FieldHint error={showError('name')} hint="Ej. María Fernández Quispe" />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-neutral-700 mb-1">
-                        Tu teléfono / WhatsApp <span className="text-rose-500">*</span>
+                      <label htmlFor="co-dni" className="block text-[11px] font-medium text-neutral-700 mb-1">
+                        DNI o carné de extranjería <span className="text-rose-500">*</span>
                       </label>
                       <input
-                        type="tel"
-                        placeholder="Ej. +52 55 1234 5678"
-                        value={customerPhone}
-                        onChange={e => setCustomerPhone(e.target.value)}
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+                        id="co-dni"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={9}
+                        placeholder="8 dígitos (9 si es CE)"
+                        value={customerDni}
+                        onChange={e => setCustomerDni(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        onBlur={() => setTouched(t => ({ ...t, dni: true }))}
+                        aria-invalid={Boolean(showError('dni'))}
+                        className={`${inputCls} tracking-wider ${showError('dni') ? errCls : ''}`}
                       />
+                      <FieldHint error={showError('dni')} hint="La tienda lo usa para verificar tu pedido." />
+                    </div>
+
+                    <div>
+                      <label htmlFor="co-phone" className="block text-[11px] font-medium text-neutral-700 mb-1">
+                        Tu teléfono / WhatsApp <span className="text-rose-500">*</span>
+                      </label>
+                      <div className={`flex rounded-xl border bg-neutral-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-colors ${showError('phone') ? 'border-rose-400' : 'border-neutral-200'}`}>
+                        <select
+                          aria-label="Código de país"
+                          value={phoneCountry}
+                          onChange={e => { setPhoneCountry(e.target.value); setCustomerPhone(''); }}
+                          className="shrink-0 pl-2.5 pr-1 py-2 text-base sm:text-xs font-semibold bg-transparent border-r border-neutral-200 rounded-l-xl focus:outline-none cursor-pointer"
+                        >
+                          {PHONE_COUNTRIES.map(c => (
+                            <option key={c.code} value={c.code}>{c.flag} +{c.code}</option>
+                          ))}
+                        </select>
+                        <input
+                          id="co-phone"
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="tel-national"
+                          maxLength={country.max}
+                          placeholder={country.code === '51' ? '9XX XXX XXX' : 'Número sin código de país'}
+                          value={customerPhone}
+                          onChange={e => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, country.max))}
+                          onBlur={() => setTouched(t => ({ ...t, phone: true }))}
+                          aria-invalid={Boolean(showError('phone'))}
+                          className="flex-1 min-w-0 px-3 py-2 text-base sm:text-xs bg-transparent rounded-r-xl focus:outline-none tracking-wide"
+                        />
+                      </div>
+                      <FieldHint error={showError('phone')} hint={country.code === '51' ? 'Celular de 9 dígitos. Aquí te confirmarán el pedido.' : 'Aquí te confirmarán el pedido.'} />
                     </div>
 
                     {deliveryType === 'delivery' && canDelivery && (
@@ -436,11 +532,15 @@ export const CartDrawer: React.FC = () => {
                         </label>
                         <textarea
                           rows={2}
-                          placeholder="Calle, número, colonia, ciudad y referencias..."
+                          placeholder="Av./Calle, número, distrito y referencia (ej. frente al parque)"
                           value={address}
+                          maxLength={250}
                           onChange={e => setAddress(e.target.value)}
-                          className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors resize-none"
+                          onBlur={() => setTouched(t => ({ ...t, address: true }))}
+                          aria-invalid={Boolean(showError('address'))}
+                          className={`${inputCls} resize-none ${showError('address') ? errCls : ''}`}
                         />
+                        <FieldHint error={showError('address')} />
                       </div>
                     )}
 
@@ -492,7 +592,7 @@ export const CartDrawer: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        placeholder="Ej. Dejar con portería, cambio de $500..."
+                        placeholder="Ej. Dejar en portería, llevar sencillo de S/ 50..."
                         value={notes}
                         onChange={e => setNotes(e.target.value)}
                         className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
@@ -551,17 +651,34 @@ export const CartDrawer: React.FC = () => {
                 </div>
               </div>
 
+              {!cartStoreAvailable && (
+                <p className="mb-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                  Esta tienda ya no está recibiendo pedidos. Vacía el carrito para comprar en otra tienda.
+                </p>
+              )}
+
               {/* Big prominent Emerald WhatsApp CTA button */}
               <button
                 type="button"
                 onClick={handleCheckout}
-                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
+                disabled={!cartStoreAvailable || isSubmitting}
+                aria-busy={isSubmitting}
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4 fill-white" />
-                <span>Pedir por WhatsApp • {formatPrice(total, currentStore.currency, currentStore.currencySymbol)}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Registrando tu pedido…</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Hacer pedido • {formatPrice(total, currentStore.currency, currentStore.currencySymbol)}</span>
+                  </>
+                )}
               </button>
               <p className="text-[10px] text-center text-neutral-600">
-                Al hacer clic serás redirigido a WhatsApp con tu pedido desglosado para confirmar con la tienda.
+                Registramos tu pedido y luego podrás avisar a la tienda por WhatsApp con un solo toque.
               </p>
             </div>
           )}

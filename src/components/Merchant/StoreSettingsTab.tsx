@@ -49,6 +49,7 @@ const TEMPLATE_VARIABLES = [
   { tag: '{nombre_tienda}', label: 'Nombre Tienda' },
   { tag: '{numero_pedido}', label: 'N° de Pedido' },
   { tag: '{nombre_cliente}', label: 'Nombre Cliente' },
+  { tag: '{dni_cliente}', label: 'DNI Cliente' },
   { tag: '{telefono_cliente}', label: 'Teléfono Cliente' },
   { tag: '{tipo_entrega}', label: 'Tipo Entrega' },
   { tag: '{direccion_entrega}', label: 'Dirección' },
@@ -57,7 +58,8 @@ const TEMPLATE_VARIABLES = [
   { tag: '{subtotal}', label: 'Subtotal' },
   { tag: '{costo_envio}', label: 'Costo Envío' },
   { tag: '{total}', label: 'Total' },
-  { tag: '{notas_pedido}', label: 'Notas' }
+  { tag: '{notas_pedido}', label: 'Notas' },
+  { tag: '{recordatorio_pago}', label: 'Recordatorio de pago' }
 ];
 
 export const StoreSettingsTab: React.FC = () => {
@@ -101,7 +103,8 @@ export const StoreSettingsTab: React.FC = () => {
     form,
     'PED-5920',
     {
-      name: 'Sofía Valenzuela',
+      name: 'Sofía Valenzuela Ríos',
+      dni: '45678912',
       phone: '+51 999333111',
       deliveryType: 'delivery',
       address: 'Calle Las Roasa 82, Pascual Alegre, Atalaya',
@@ -245,8 +248,12 @@ export const StoreSettingsTab: React.FC = () => {
                 </div>
               </div>
 
+              <p className="mb-2 text-[11px] text-neutral-500 leading-relaxed">
+                Déjala <strong>vacía</strong> para usar el mensaje recomendado de JamuyWasi (distinto para envío a domicilio y recojo, con DNI del cliente y recordatorio de pago anticipado).
+              </p>
               <textarea
                 rows={9}
+                placeholder="(Vacío = mensaje recomendado)"
                 value={form.whatsappMessageTemplate}
                 onChange={e => setForm({ ...form, whatsappMessageTemplate: e.target.value })}
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono leading-relaxed"

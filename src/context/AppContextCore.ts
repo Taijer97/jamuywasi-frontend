@@ -14,11 +14,13 @@ import {
   YapeVerifyResult,
   YapePaymentConfig,
   LoginResult,
-  LiveNotification
+  LiveNotification,
+  AppNotification
 } from '../types';
 
 export interface CustomerCheckoutData {
   name: string;
+  dni: string;
   phone: string;
   deliveryType: 'delivery' | 'pickup';
   address: string;
@@ -53,6 +55,13 @@ export interface AppContextType {
   lastCompletedOrder: Order | null;
   orderSuccessModalOpen: boolean;
   isLoadingData: boolean;
+  // Notificaciones (campanita)
+  notifications: AppNotification[];
+  unreadNotifications: number;
+  openNotification: (n: AppNotification) => void;
+  markAllNotificationsRead: () => void;
+  /** Ir al inicio reemplazando la URL actual (sin dejarla en el historial) */
+  redirectToHome: () => void;
 
   // File Upload to MinIO
   uploadImage: (file: File, folder?: 'logos' | 'products' | 'banners') => Promise<{ url: string; filename: string }>;
@@ -145,12 +154,21 @@ export interface AppContextType {
   updateCartQuantity: (itemId: string, quantity: number) => void;
   removeFromCart: (itemId: string) => void;
   clearCart: () => void;
+  /** Tienda a la que pertenece el carrito (un pedido de WhatsApp = una sola tienda) */
+  cartStore: StoreConfig;
+  /** false si la tienda del carrito ya no está publicada */
+  cartStoreAvailable: boolean;
+  /** Pregunta pendiente al agregar un producto de OTRA tienda */
+  pendingCartSwitch: { fromStoreName: string; toStoreName: string; productName: string } | null;
+  confirmCartSwitch: () => void;
+  cancelCartSwitch: () => void;
   setCartDrawerOpen: (open: boolean) => void;
   setSelectedProductForModal: (product: Product | null) => void;
   setOrderSuccessModalOpen: (open: boolean) => void;
   
   // Order checkout via WhatsApp & Backend persistence
-  submitOrderToWhatsApp: (customerData: CustomerCheckoutData) => { order: Order; whatsappUrl: string };
+  /** Registra el pedido en el servidor. Devuelve el error a mostrar si no se pudo. */
+  submitOrderToWhatsApp: (customerData: CustomerCheckoutData) => Promise<{ ok: true; order: Order; whatsappUrl: string } | { ok: false; error: string }>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   
   // Merchant CRUD Actions

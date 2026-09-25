@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { ShoppingBag, Sparkles, Check, Eye } from 'lucide-react';
 import { formatPrice } from '../../utils/whatsapp';
 import { DEFAULT_PRODUCT_IMAGE } from '../../data/initialData';
+import { thumbUrl, fallbackToOriginal } from '../../utils/imageUrls';
 
 interface ProductCardProps {
   product: Product;
@@ -39,7 +40,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Image container (Regularized & Contained) */}
       <div className="relative aspect-square w-full overflow-hidden bg-neutral-50/70 p-3 sm:p-4 flex items-center justify-center border-b border-neutral-100">
         <img
-          src={product.imageUrl || DEFAULT_PRODUCT_IMAGE}
+          src={thumbUrl(product.imageUrl) || DEFAULT_PRODUCT_IMAGE}
+          onError={fallbackToOriginal(product.imageUrl)}
+          decoding="async"
           alt={product.name}
           className="max-w-full max-h-full w-auto h-auto object-contain object-center rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
           loading="lazy"

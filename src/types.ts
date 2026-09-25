@@ -149,6 +149,8 @@ export interface Order {
   orderNumber: string;
   storeId: string;
   customerName: string;
+  /** DNI (8 dígitos) o carné de extranjería (9) */
+  customerDni?: string;
   customerPhone: string;
   customerAddress: string;
   notes?: string;
@@ -311,3 +313,21 @@ export interface LiveNotification {
 }
 
 
+
+/** Notificación de la campanita (comerciantes y superadmin) */
+export type AppNotificationType =
+  | 'ORDER_NEW' | 'PLAN_EXPIRING' | 'PLAN_EXPIRED' | 'PLAN_ACTIVATED' | 'ACCOUNT_APPROVED' | 'ACCOUNT_SUSPENDED'
+  | 'APPROVAL_PENDING' | 'PIN_RESET_REQUESTED' | 'PAYMENT_RECEIVED' | 'PAYMENT_MANUAL_REVIEW' | 'MERCHANT_PLAN_EXPIRED'
+  | string;
+
+export interface AppNotification {
+  id: string;
+  type: AppNotificationType;
+  title: string;
+  message: string;
+  /** A dónde lleva al hacer clic: { view, tab?, adminTab?, targetId? } */
+  link: { view?: 'merchant' | 'superadmin' | string; tab?: string; adminTab?: string; targetId?: string };
+  storeId?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}

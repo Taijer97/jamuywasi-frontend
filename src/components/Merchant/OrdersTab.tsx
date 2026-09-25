@@ -16,7 +16,9 @@ import {
   FileText,
   User,
   MapPin,
-  CreditCard
+  CreditCard,
+  IdCard,
+  Store as StoreIcon
 } from 'lucide-react';
 import {
   formatPrice,
@@ -32,6 +34,8 @@ export const OrdersTab: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'delivery' | 'pickup'>('all');
+  const pickupLabel = currentStore.storeType === 'fisica' ? 'Recojo en tienda' : 'Recojo en punto';
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const statusOptions: { value: string; label: string; count: number }[] = [
@@ -47,9 +51,11 @@ export const OrdersTab: React.FC = () => {
     const matchesSearch =
       o.customerName.toLowerCase().includes(search.toLowerCase()) ||
       o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerPhone.includes(search);
+      o.customerPhone.includes(search) ||
+      (o.customerDni || '').includes(search);
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDelivery = deliveryFilter === 'all' || o.deliveryType === deliveryFilter;
+    return matchesSearch && matchesStatus && matchesDelivery;
   });
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
@@ -132,15 +138,42 @@ export const OrdersTab: React.FC = () => {
           ))}
         </div>
 
-        <div className="relative">
+        <div className="flex flex-col sm:flex-row gap-2">
+        {/* Filtro por modalidad de entrega */}
+        <div className="flex shrink-0 rounded-xl border border-neutral-200 bg-white p-0.5 shadow-2xs" role="group" aria-label="Filtrar por entrega">
+          {([
+            { v: 'all', label: 'Todas', icon: null },
+            { v: 'delivery', label: 'Domicilio', icon: Truck },
+            { v: 'pickup', label: 'Recojo', icon: StoreIcon },
+          ] as const).map(opt => {
+            const n = opt.v === 'all' ? currentStoreOrders.length : currentStoreOrders.filter(o => o.deliveryType === opt.v).length;
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setDeliveryFilter(opt.v)}
+                aria-pressed={deliveryFilter === opt.v}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                  deliveryFilter === opt.v ? 'bg-emerald-600 text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5" />}
+                {opt.label} ({n})
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
-            placeholder="Buscar por cliente, # pedido o teléfono..."
+            placeholder="Buscar por cliente, # pedido, teléfono o DNI..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-neutral-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-2xs"
           />
+        </div>
         </div>
       </div>
 
@@ -152,6 +185,7 @@ export const OrdersTab: React.FC = () => {
               <tr>
                 <th className="py-3 px-4">Pedido / Fecha</th>
                 <th className="py-3 px-4">Cliente & Contacto</th>
+                <th className="py-3 px-4">Entrega</th>
                 <th className="py-3 px-4">Ítems</th>
                 <th className="py-3 px-4">Total</th>
                 <th className="py-3 px-4">Estado del Pedido</th>
@@ -161,9 +195,9 @@ export const OrdersTab: React.FC = () => {
             <tbody className="divide-y divide-neutral-100">
               {filteredOrders.length > 0 ? (
                 filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
+                  <tr key={order.id} data-notif-target={order.id} className="hover:bg-neutral-50/50 transition-colors">
                     <td className="py-3 px-4">
-                      <span className="font-extrabold text-neutral-900 font-mono">
+                      <span className="font-extrabold text-neutral-900 font-mono whitespace-nowrap">
                         #{order.orderNumber}
                       </span>
                       <p className="text-[11px] text-neutral-400">
@@ -178,12 +212,33 @@ export const OrdersTab: React.FC = () => {
 
                     <td className="py-3 px-4">
                       <p className="font-bold text-neutral-900">{order.customerName}</p>
-                      <p className="text-[11px] text-neutral-500">{order.customerPhone}</p>
+                      <p className="text-[11px] text-neutral-500">{order.customerPhone}{order.customerDni ? ` · DNI ${order.customerDni}` : ''}</p>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {order.deliveryType === 'pickup' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold whitespace-nowrap">
+                          <StoreIcon className="w-3.5 h-3.5" />
+                          {pickupLabel}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold whitespace-nowrap">
+                            <Truck className="w-3.5 h-3.5" />
+                            Envío a domicilio
+                          </span>
+                          {order.customerAddress && (
+                            <p className="mt-1 text-[10px] text-neutral-500 truncate max-w-[180px]" title={order.customerAddress}>
+                              {order.customerAddress}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </td>
 
                     <td className="py-3 px-4">
                       <span className="font-semibold text-neutral-700">
-                        {order.items.reduce((s, i) => s + i.quantity, 0)} productos
+                        {(() => { const n = order.items.reduce((s, i) => s + i.quantity, 0); return `${n} ${n === 1 ? 'producto' : 'productos'}`; })()}
                       </span>
                       <p className="text-[10px] text-neutral-400 truncate max-w-[160px]">
                         {order.items.map(i => i.productName).join(', ')}
@@ -238,7 +293,7 @@ export const OrdersTab: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-neutral-400">
+                  <td colSpan={7} className="py-12 text-center text-neutral-400">
                     No se encontraron pedidos con este filtro.
                   </td>
                 </tr>
@@ -279,13 +334,19 @@ export const OrdersTab: React.FC = () => {
                   <User className="w-3.5 h-3.5 text-neutral-500" />
                   <span>{selectedOrder.customerName}</span>
                 </div>
+                {selectedOrder.customerDni && (
+                  <div className="flex items-center gap-2 text-neutral-600">
+                    <IdCard className="w-3.5 h-3.5 text-neutral-500" />
+                    <span>DNI/CE: <strong className="text-neutral-800 tracking-wide">{selectedOrder.customerDni}</strong></span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-neutral-600">
                   <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{selectedOrder.customerPhone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-neutral-600">
                   <MapPin className="w-3.5 h-3.5 text-neutral-500" />
-                  <span>{selectedOrder.customerAddress} ({selectedOrder.deliveryType === 'delivery' ? 'Envío' : 'Retiro'})</span>
+                  <span>{selectedOrder.deliveryType === 'delivery' ? 'Envío a domicilio' : pickupLabel}: {selectedOrder.customerAddress}</span>
                 </div>
                 <div className="flex items-center gap-2 text-neutral-600">
                   <CreditCard className="w-3.5 h-3.5 text-neutral-500" />

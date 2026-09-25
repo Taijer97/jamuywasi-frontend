@@ -36,7 +36,7 @@ export const SAAS_PLANS: PlanConfig[] = [
       'Personalización total de plantilla WhatsApp',
       'Panel de métricas y reportes mensuales',
       'Gestión de inventario y variantes (tallas, colores)',
-      'Exportación de reportes a CSV',
+      'Exportación de reportes a Excel',
       'Sin comisiones por ventas',
       'Soporte prioritario por WhatsApp'
     ]

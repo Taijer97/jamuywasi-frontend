@@ -14,26 +14,43 @@ import {
   Sparkles
 } from 'lucide-react';
 import { formatPrice } from '../../utils/whatsapp';
+import { exportSalesReport } from '../../utils/reportExports';
 
 export const ReportsTab: React.FC = () => {
   const { currentStoreOrders, currentStoreProducts, currentStore } = useApp();
 
-  // Selected period
-  const [selectedMonth, setSelectedMonth] = useState<'all' | '2025-05' | '2025-04' | '2025-03'>('all');
+  // Periodo: meses reales con pedidos (más el mes actual), del más reciente al más antiguo
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
-  const monthOptions = [
-    { id: 'all', label: 'Histórico Completo' },
-    { id: '2025-05', label: 'Mayo 2025 (Mes actual)' },
-    { id: '2025-04', label: 'Abril 2025' },
-    { id: '2025-03', label: 'Marzo 2025' }
-  ];
+  // Mes local (hora de Perú) de un pedido, p. ej. "2026-09"
+  const monthKey = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const keys = new Set<string>([current]);
+    currentStoreOrders.forEach(o => { if (o.createdAt) keys.add(monthKey(o.createdAt)); });
+    const label = (k: string) => {
+      const [y, m] = k.split('-').map(Number);
+      const txt = new Date(y, m - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+      return txt.charAt(0).toUpperCase() + txt.slice(1) + (k === current ? ' (mes actual)' : '');
+    };
+    return [
+      { id: 'all', label: 'Histórico completo' },
+      ...[...keys].filter(k => /^\d{4}-\d{2}$/.test(k)).sort().reverse().map(k => ({ id: k, label: label(k) })),
+    ];
+  }, [currentStoreOrders]);
 
   // Filter orders by month
   const periodOrders = useMemo(() => {
     if (selectedMonth === 'all') {
       return currentStoreOrders;
     }
-    return currentStoreOrders.filter(o => o.createdAt.startsWith(selectedMonth));
+    return currentStoreOrders.filter(o => monthKey(o.createdAt) === selectedMonth);
   }, [currentStoreOrders, selectedMonth]);
 
   // Valid non-cancelled orders
@@ -112,28 +129,24 @@ export const ReportsTab: React.FC = () => {
     }));
   }, [totalRevenue]);
 
-  // Export to CSV
-  const handleExportCSV = () => {
-    const headers = ['Numero_Pedido', 'Fecha', 'Cliente', 'Telefono', 'Modalidad', 'Metodo_Pago', 'Total', 'Estado'];
-    const rows = completedOrders.map(o => [
-      o.orderNumber,
-      o.createdAt.substring(0, 10),
-      `"${o.customerName.replace(/"/g, '""')}"`,
-      o.customerPhone,
-      o.deliveryType,
-      `"${o.paymentMethod.replace(/"/g, '""')}"`,
-      o.total,
-      o.status
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `reporte_ventas_${currentStore.slug}_${selectedMonth}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Exportar a Excel (Resumen + Pedidos + Detalle de productos)
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await exportSalesReport({
+        store: currentStore,
+        orders: periodOrders,
+        products: currentStoreProducts,
+        periodLabel: monthOptions.find(m => m.id === selectedMonth)?.label || 'Histórico completo',
+        periodKey: selectedMonth === 'all' ? 'historico' : selectedMonth,
+      });
+    } catch (e) {
+      console.error('No se pudo generar el Excel', e);
+      alert('No se pudo generar el archivo de Excel. Revisa tu conexión e inténtalo de nuevo.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePrint = () => {
@@ -157,7 +170,7 @@ export const ReportsTab: React.FC = () => {
           <div className="relative flex-1 sm:flex-initial">
             <select
               value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value as any)}
+              onChange={e => setSelectedMonth(e.target.value)}
               className="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-xl border border-neutral-200 bg-white text-neutral-800 shadow-2xs focus:outline-none cursor-pointer"
             >
               {monthOptions.map(m => (
@@ -167,12 +180,14 @@ export const ReportsTab: React.FC = () => {
           </div>
 
           <button
-            onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-            title="Descargar archivo CSV"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            title="Descargar reporte en Excel (.xlsx)"
+            aria-label="Exportar reporte a Excel"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">{isExporting ? 'Generando…' : 'Exportar Excel'}</span>
           </button>
 
           <button

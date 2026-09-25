@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Globe
 } from 'lucide-react';
+import { RedirectHome } from '../Common/RedirectHome';
 import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink, getAdminWhatsApp } from '../../utils/subscriptionUtils';
 import { DEFAULT_STORE_BANNER, DEFAULT_STORE_LOGO } from '../../data/initialData';
 
@@ -329,10 +330,15 @@ export const CatalogView: React.FC = () => {
     );
   }
 
-  // 0a. Mientras llegan los datos del servidor NO mostramos la tienda genérica de respaldo
-  //     ("JamuyWasi"), sino un esqueleto de carga. Así, al recargar una tienda, no aparece
-  //     por un instante otra tienda antes de la correcta.
-  if (isLoadingData) {
+  // ¿La tienda del enlace ya está entre los datos (de la caché o del servidor)?
+  const requestedStoreMissing =
+    !currentStore.id ||
+    (Boolean(currentStoreId) && currentStore.id !== currentStoreId && currentStore.slug !== currentStoreId);
+  // 0a. Si la tienda aún no está en los datos (ni en la caché) y siguen llegando del servidor,
+  //     mostramos un esqueleto en vez de la tienda genérica de respaldo. Si ya está en la caché,
+  //     se muestra al instante y se actualiza sola cuando llegan los datos frescos.
+  //     (Nunca se muestra la tienda genérica "JamuyWasi" de respaldo.)
+  if (isLoadingData && requestedStoreMissing) {
     return (
       <div className="min-h-[75vh] bg-neutral-50" aria-busy="true" aria-live="polite">
         <span className="sr-only">Cargando tienda…</span>
@@ -362,30 +368,11 @@ export const CatalogView: React.FC = () => {
     );
   }
 
-  // 0b. Ya cargó, pero la tienda pedida en el enlace no existe o no está disponible:
-  //     antes se mostraba la primera tienda de la lista (otra tienda) o la genérica.
-  const requestedStoreMissing =
-    !currentStore.id ||
-    (Boolean(currentStoreId) && currentStore.id !== currentStoreId && currentStore.slug !== currentStoreId);
+  // 0b. Ya cargó y la tienda del enlace no existe o no está publicada: al inicio,
+  //     con un aviso breve (dirección desconocida o tienda no publicada).
   if (requestedStoreMissing) {
     return (
-      <div className="min-h-[75vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-neutral-200 text-center shadow-lg space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-neutral-100 text-neutral-500 flex items-center justify-center mx-auto">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-black text-neutral-900">Tienda no disponible</h2>
-          <p className="text-sm text-neutral-600 leading-relaxed">
-            No encontramos esta tienda o todavía no está publicada. Revisa el enlace o explora otras tiendas.
-          </p>
-          <button
-            onClick={returnToStoresDirectory}
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors cursor-pointer"
-          >
-            Ver tiendas disponibles
-          </button>
-        </div>
-      </div>
+      <RedirectHome notice={{ title: 'Página no encontrada', message: 'La dirección que abriste no existe o ya no está disponible. Te llevamos al inicio.' }} />
     );
   }
 

@@ -20,6 +20,9 @@ export function useRealtimeWebSocket(
   const attemptRef = useRef(0);
   const onMessageRef = useRef(onMessage);
   const onReconnectRef = useRef(onReconnect);
+  // Si el servidor no responde "pong" a tiempo, la conexión está muerta aunque el navegador no lo sepa
+  // (pasa al cambiar de wifi a datos o al desbloquear el celular): la cerramos para reconectar.
+  const pongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasOpenedBeforeRef = useRef(false);
   const isUnmountedRef = useRef(false);
 
@@ -72,12 +75,20 @@ export function useRealtimeWebSocket(
         pingIntervalRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send('ping');
+            if (pongTimeoutRef.current) clearTimeout(pongTimeoutRef.current);
+            pongTimeoutRef.current = setTimeout(() => {
+              // Sin respuesta en 10 s: conexión colgada -> forzar reconexión
+              try { ws.close(4000, 'Heartbeat timeout'); } catch { /* noop */ }
+            }, 10000);
           }
         }, 25000);
       };
 
       ws.onmessage = (event) => {
-        if (event.data === 'pong') return;
+        if (event.data === 'pong') {
+          if (pongTimeoutRef.current) { clearTimeout(pongTimeoutRef.current); pongTimeoutRef.current = null; }
+          return;
+        }
         try {
           const parsed = JSON.parse(event.data) as WebSocketMessage;
           if (parsed && parsed.type) {
@@ -91,6 +102,7 @@ export function useRealtimeWebSocket(
       ws.onclose = (event) => {
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        if (pongTimeoutRef.current) { clearTimeout(pongTimeoutRef.current); pongTimeoutRef.current = null; }
 
         // Si se cerró intencionalmente (código 1000) o el componente ya se desmontó, no reintentar
         if (isUnmountedRef.current || event.code === 1000) {
@@ -98,7 +110,8 @@ export function useRealtimeWebSocket(
         }
 
         // Reintento con retroceso exponencial (1.5s, 3s, 6s... máx 20s)
-        const delay = Math.min(20000, 1500 * Math.pow(1.5, attemptRef.current));
+        // + azar (jitter) para que, si el servidor se reinicia, no reconecten todos al mismo tiempo
+        const delay = Math.min(20000, 1500 * Math.pow(1.5, attemptRef.current)) + Math.random() * 1000;
         attemptRef.current += 1;
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
@@ -124,6 +137,7 @@ export function useRealtimeWebSocket(
       isUnmountedRef.current = true;
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      if (pongTimeoutRef.current) clearTimeout(pongTimeoutRef.current);
 
       const ws = wsRef.current;
       if (ws) {
@@ -144,14 +158,33 @@ export function useRealtimeWebSocket(
     };
   }, [connect]);
 
+  // Reconectar de inmediato cuando vuelve la red o el usuario regresa a la pestaña/app,
+  // en lugar de esperar al siguiente reintento (que puede tardar hasta 20 s).
+  useEffect(() => {
+    const reconnectNow = () => {
+      const ws = wsRef.current;
+      const alive = ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING);
+      if (alive || isUnmountedRef.current) return;
+      attemptRef.current = 0;
+      connect();
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') reconnectNow(); };
+    window.addEventListener('online', reconnectNow);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', reconnectNow);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [connect]);
+
   // Reconectar cuando el usuario inicia o cierra sesión, para que el backend
   // reciba el token nuevo y envíe los eventos correctos (pedidos, pagos, etc.)
-  const firstAuthRef = useRef(true);
+  // Se compara con el valor anterior (no con un "primer render"), así en modo desarrollo
+  // (React StrictMode ejecuta los efectos dos veces) no se abre una conexión de más.
+  const prevAuthKeyRef = useRef(authKey);
   useEffect(() => {
-    if (firstAuthRef.current) {
-      firstAuthRef.current = false;
-      return;
-    }
+    if (prevAuthKeyRef.current === authKey) return;
+    prevAuthKeyRef.current = authKey;
     const ws = wsRef.current;
     if (ws) {
       ws.onclose = null;
