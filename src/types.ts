@@ -152,7 +152,7 @@ export interface OrderItem {
   imageUrl?: string;
 }
 
-export type OrderStatus = 'pending_whatsapp' | 'confirmed' | 'preparing' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending_whatsapp' | 'confirmed' | 'preparing' | 'ready_to_deliver' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;

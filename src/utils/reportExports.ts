@@ -14,6 +14,7 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending_whatsapp: 'Pendiente WhatsApp',
   confirmed: 'Confirmado',
   preparing: 'En preparación',
+  ready_to_deliver: 'Por Entregar',
   delivered: 'Entregado',
   cancelled: 'Cancelado',
 };

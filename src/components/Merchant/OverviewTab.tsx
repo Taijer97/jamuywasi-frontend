@@ -34,7 +34,7 @@ export const OverviewTab: React.FC = () => {
     .reduce((sum, o) => sum + o.total, 0);
 
   const pendingOrders = currentStoreOrders.filter(o => o.status === 'pending_whatsapp');
-  const confirmedOrders = currentStoreOrders.filter(o => o.status === 'confirmed' || o.status === 'preparing');
+  const confirmedOrders = currentStoreOrders.filter(o => o.status === 'confirmed' || o.status === 'preparing' || o.status === 'ready_to_deliver');
   const deliveredOrders = currentStoreOrders.filter(o => o.status === 'delivered');
 
   const averageTicket = currentStoreOrders.length > 0
@@ -185,13 +185,15 @@ export const OverviewTab: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         order.status === 'delivered'
                           ? 'bg-emerald-50 text-emerald-700'
+                          : order.status === 'ready_to_deliver'
+                          ? 'bg-sky-50 text-sky-700'
                           : order.status === 'preparing'
                           ? 'bg-blue-50 text-blue-700'
                           : order.status === 'confirmed'
                           ? 'bg-purple-50 text-purple-700'
                           : 'bg-amber-50 text-amber-700'
                       }`}>
-                        {order.status === 'delivered' ? 'Entregado' : order.status === 'preparing' ? 'En preparación' : order.status === 'confirmed' ? 'Confirmado' : 'Pendiente WhatsApp'}
+                        {order.status === 'delivered' ? 'Entregado' : order.status === 'ready_to_deliver' ? 'Por entregar' : order.status === 'preparing' ? 'En preparación' : order.status === 'confirmed' ? 'Confirmado' : 'Pendiente WhatsApp'}
                       </span>
                     </div>
                     <p className="text-[11px] text-neutral-500">

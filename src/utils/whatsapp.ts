@@ -270,6 +270,11 @@ export function generateCustomerStatusUpdateWhatsAppLink(
           ? `Es para *retiro en local*${pickupPlace ? ` (${pickupPlace})` : ''}, te avisaremos en cuanto esté listo para recoger. 🏬`
           : `Es para *envío a domicilio*, te avisaremos cuando salga en camino hacia: ${order.customerAddress}. 🚚`);
       break;
+    case 'ready_to_deliver':
+      message = isPickup
+        ? `¡Hola ${order.customerName}! ✅ Tu pedido *#${order.orderNumber}* en *${store.name}* ya está *listo para recoger*${pickupPlace ? ` en ${pickupPlace}` : ''}. ¡Te esperamos! 🏬`
+        : `¡Hola ${order.customerName}! 🚚 Tu pedido *#${order.orderNumber}* de *${store.name}* ya está *en camino* hacia: ${order.customerAddress}. ¡Muy pronto llegará! 📍`;
+      break;
     case 'delivered':
       message = `¡Hola ${order.customerName}! 🎉 Tu pedido *#${order.orderNumber}* de *${store.name}* ha sido ${isPickup ? `*entregado para retiro*${pickupPlace ? ` en ${pickupPlace}` : ''}` : `*entregado en tu dirección* (${order.customerAddress})`}. ¡Muchas gracias por tu compra! Déjanos saber si todo llegó perfecto. ⭐`;
       break;

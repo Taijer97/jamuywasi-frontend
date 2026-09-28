@@ -43,6 +43,7 @@ export const OrdersTab: React.FC = () => {
     { value: 'pending_whatsapp', label: 'Pendientes WhatsApp', count: currentStoreOrders.filter(o => o.status === 'pending_whatsapp').length },
     { value: 'confirmed', label: 'Confirmados', count: currentStoreOrders.filter(o => o.status === 'confirmed').length },
     { value: 'preparing', label: 'En Preparación', count: currentStoreOrders.filter(o => o.status === 'preparing').length },
+    { value: 'ready_to_deliver', label: 'Por Entregar', count: currentStoreOrders.filter(o => o.status === 'ready_to_deliver').length },
     { value: 'delivered', label: 'Entregados', count: currentStoreOrders.filter(o => o.status === 'delivered').length },
     { value: 'cancelled', label: 'Cancelados', count: currentStoreOrders.filter(o => o.status === 'cancelled').length }
   ];
@@ -82,6 +83,12 @@ export const OrdersTab: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
             <Package className="w-3 h-3" /> En Preparación
+          </span>
+        );
+      case 'ready_to_deliver':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+            <Truck className="w-3 h-3" /> Por Entregar
           </span>
         );
       case 'confirmed':
@@ -265,6 +272,7 @@ export const OrdersTab: React.FC = () => {
                           <option value="pending_whatsapp">Pendiente</option>
                           <option value="confirmed">Confirmado</option>
                           <option value="preparing">En preparación</option>
+                          <option value="ready_to_deliver">Por entregar</option>
                           <option value="delivered">Entregado</option>
                           <option value="cancelled">Cancelado</option>
                         </select>
@@ -419,8 +427,8 @@ export const OrdersTab: React.FC = () => {
                 <label className="block font-semibold text-neutral-700 mb-1.5">
                   Actualizar estado del pedido:
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(['confirmed', 'preparing', 'delivered', 'cancelled'] as OrderStatus[]).map(st => (
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {(['confirmed', 'preparing', 'ready_to_deliver', 'delivered', 'cancelled'] as OrderStatus[]).map(st => (
                     <button
                       key={st}
                       type="button"
@@ -431,7 +439,7 @@ export const OrdersTab: React.FC = () => {
                           : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                       }`}
                     >
-                      {st === 'confirmed' ? 'Confirmar' : st === 'preparing' ? 'Preparar' : st === 'delivered' ? 'Entregar' : 'Cancelar'}
+                      {st === 'confirmed' ? 'Confirmar' : st === 'preparing' ? 'Preparar' : st === 'ready_to_deliver' ? 'Por Entregar' : st === 'delivered' ? 'Entregar' : 'Cancelar'}
                     </button>
                   ))}
                 </div>
