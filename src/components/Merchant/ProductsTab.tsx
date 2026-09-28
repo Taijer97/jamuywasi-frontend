@@ -14,22 +14,11 @@ import {
   AlertCircle,
   Eye,
   Upload,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { formatPrice } from '../../utils/whatsapp';
 import { DEFAULT_PRODUCT_IMAGE } from '../../data/initialData';
-
-const PRESET_IMAGES = [
-  { label: 'Sudadera / Ropa', url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Pantalón Urbano', url: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Tote Bag', url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Gorra / Accesorio', url: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Chaqueta Denim', url: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Calzado / Zapatos', url: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Café de Especialidad', url: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Reloj / Joyería', url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Taza Artesanal', url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80' }
-];
 
 export interface FormVariantOption {
   id: string;
@@ -64,6 +53,7 @@ export const ProductsTab: React.FC = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const productFileInputRef = React.useRef<HTMLInputElement>(null);
+  const productCameraInputRef = React.useRef<HTMLInputElement>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -72,7 +62,7 @@ export const ProductsTab: React.FC = () => {
   const [compareAtPrice, setCompareAtPrice] = useState<number | undefined>(undefined);
   const [sku, setSku] = useState('');
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0].url);
+  const [imageUrl, setImageUrl] = useState('');
   const [inStock, setInStock] = useState(true);
   const [isFeatured, setIsFeatured] = useState(false);
   const [variantGroups, setVariantGroups] = useState<FormVariantGroup[]>([]);
@@ -171,7 +161,7 @@ export const ProductsTab: React.FC = () => {
       const res = await uploadImage(file, 'products');
       setImageUrl(res.url);
     } catch (err: any) {
-      alert(err.message || 'Error al subir imagen a MinIO');
+      alert(err.message || 'Error al subir la imagen');
     } finally {
       setIsUploadingImage(false);
     }
@@ -271,7 +261,7 @@ export const ProductsTab: React.FC = () => {
     setCompareAtPrice(undefined);
     setSku(`SKU-${Math.floor(100 + Math.random() * 900)}`);
     setDescription('');
-    setImageUrl(PRESET_IMAGES[Math.floor(Math.random() * PRESET_IMAGES.length)].url);
+    setImageUrl('');
     setInStock(true);
     setIsFeatured(false);
     setVariantGroups([]);
@@ -727,67 +717,71 @@ export const ProductsTab: React.FC = () => {
                 />
               </div>
 
-              {/* Image URL & Preset picker */}
+              {/* Foto del producto */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="block font-semibold text-neutral-700">
-                    Foto del Producto (URL o Subir a MinIO)
+                    Foto del Producto
                   </label>
-                  <input
-                    type="file"
-                    ref={productFileInputRef}
-                    hidden
-                    accept="image/*"
-                    onChange={handleProductImageUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => productFileInputRef.current?.click()}
-                    disabled={isUploadingImage}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploadingImage ? 'Subiendo a MinIO...' : 'Subir Imagen (MinIO)'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="file"
+                      ref={productFileInputRef}
+                      hidden
+                      accept="image/*"
+                      onChange={handleProductImageUpload}
+                    />
+                    <input
+                      type="file"
+                      ref={productCameraInputRef}
+                      hidden
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleProductImageUpload}
+                    />
+                    {/* Solo en pantallas móviles: abre la cámara directo para tomar la foto */}
+                    <button
+                      type="button"
+                      onClick={() => productCameraInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{isUploadingImage ? 'Subiendo...' : 'Tomar Foto'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => productFileInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploadingImage ? 'Subiendo imagen...' : 'Subir Imagen'}</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    placeholder="https://images.unsplash.com/... o enlace de MinIO"
+                    placeholder="Pega el enlace de una imagen (opcional)"
                     value={imageUrl}
                     onChange={e => setImageUrl(e.target.value)}
                     className="flex-1 px-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
-                  {imageUrl && (
+                  {imageUrl ? (
                     <img loading="lazy" decoding="async"
                       src={imageUrl}
                       alt="Preview"
-                      className="w-9 h-9 rounded-lg object-cover border border-neutral-200"
+                      className="w-9 h-9 rounded-lg object-cover border border-neutral-200 shrink-0"
                     />
+                  ) : (
+                    <div
+                      title="Sin imagen: se usará una foto genérica hasta que subas la tuya"
+                      className="w-9 h-9 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 flex items-center justify-center text-neutral-400 shrink-0"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
                   )}
-                </div>
-
-                {/* Preset image quick selectors */}
-                <div className="pt-1">
-                  <span className="text-[10px] text-neutral-500 font-medium block mb-1">
-                    O selecciona una imagen predefinida de alta calidad:
-                  </span>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                    {PRESET_IMAGES.map((img, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setImageUrl(img.url)}
-                        className={`px-2 py-1 rounded-lg border text-[10px] whitespace-nowrap transition-colors cursor-pointer ${
-                          imageUrl === img.url
-                            ? 'border-emerald-600 bg-emerald-50 text-emerald-800 font-bold'
-                            : 'border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-600'
-                        }`}
-                      >
-                        {img.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 

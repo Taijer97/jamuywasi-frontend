@@ -31,22 +31,6 @@ import {
 } from 'lucide-react';
 import { StoreStatusBadge } from '../Common/StoreStatusBadge';
 
-const LOGO_PRESETS = [
-  { label: 'Moda / Ropa', url: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&auto=format&fit=crop&q=80' },
-  { label: 'Cafetería / Gourmet', url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80' },
-  { label: 'Calzado / Sneakers', url: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=300&auto=format&fit=crop&q=80' },
-  { label: 'Tecnología / Gadgets', url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80' },
-  { label: 'Belleza / Cosméticos', url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=80' },
-  { label: 'Hogar / Deco', url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&auto=format&fit=crop&q=80' },
-];
-
-const BANNER_PRESETS = [
-  { label: 'Boutique Minimal', url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&auto=format&fit=crop&q=80' },
-  { label: 'Cafetería & Granos', url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&auto=format&fit=crop&q=80' },
-  { label: 'Urban & Streetwear', url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=1400&auto=format&fit=crop&q=80' },
-  { label: 'Tech & Moderno', url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1400&auto=format&fit=crop&q=80' },
-];
-
 import {
   ScheduleTimeSlot,
   DayScheduleItem,
@@ -501,7 +485,7 @@ export const StoreProfileTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Logo Input, Upload & Presets */}
+            {/* Logo Input & Upload */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-neutral-800">
@@ -521,48 +505,35 @@ export const StoreProfileTab: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{isUploadingLogo ? 'Subiendo a MinIO...' : 'Subir Imagen (MinIO)'}</span>
+                  <span>{isUploadingLogo ? 'Subiendo imagen...' : 'Subir Imagen'}</span>
                 </button>
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  required
-                  placeholder="https://images.unsplash.com/... o enlace de MinIO"
+                  placeholder="Pega el enlace de una imagen (opcional)"
                   value={form.logo}
                   onChange={e => setForm({ ...form, logo: e.target.value })}
                   className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
-                {form.logo && (
+                {form.logo ? (
                   <img loading="lazy" decoding="async"
                     src={form.logo}
                     alt="Logo preview"
-                    className="w-8 h-8 rounded-lg object-cover border border-neutral-200"
+                    className="w-8 h-8 rounded-lg object-cover border border-neutral-200 shrink-0"
                   />
+                ) : (
+                  <div
+                    title="Sin logo: se usará uno predeterminado hasta que subas el tuyo"
+                    className="w-8 h-8 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 flex items-center justify-center text-neutral-400 shrink-0"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </div>
                 )}
-              </div>
-
-              {/* Logo Quick Presets */}
-              <div>
-                <span className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider block mb-1.5">
-                  O elige una muestra rápida:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {LOGO_PRESETS.map(preset => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => setForm({ ...form, logo: preset.url })}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-neutral-100 hover:bg-emerald-50 hover:text-emerald-700 text-neutral-700 border border-neutral-200/80 transition-colors cursor-pointer"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 
-            {/* Banner Input, Upload & Presets */}
+            {/* Banner Input & Upload */}
             <div className="space-y-2 pt-2 border-t border-neutral-100">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-neutral-800">
@@ -582,37 +553,31 @@ export const StoreProfileTab: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{isUploadingBanner ? 'Subiendo a MinIO...' : 'Subir Imagen (MinIO)'}</span>
+                  <span>{isUploadingBanner ? 'Subiendo imagen...' : 'Subir Imagen'}</span>
                 </button>
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  required
-                  placeholder="https://images.unsplash.com/... o enlace de MinIO"
+                  placeholder="Pega el enlace de una imagen (opcional)"
                   value={form.banner}
                   onChange={e => setForm({ ...form, banner: e.target.value })}
                   className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
-              </div>
-
-              {/* Banner Quick Presets */}
-              <div>
-                <span className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider block mb-1.5">
-                  O elige una muestra panorámica:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {BANNER_PRESETS.map(preset => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => setForm({ ...form, banner: preset.url })}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-neutral-100 hover:bg-emerald-50 hover:text-emerald-700 text-neutral-700 border border-neutral-200/80 transition-colors cursor-pointer"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
+                {form.banner ? (
+                  <img loading="lazy" decoding="async"
+                    src={form.banner}
+                    alt="Banner preview"
+                    className="w-8 h-8 rounded-lg object-cover border border-neutral-200 shrink-0"
+                  />
+                ) : (
+                  <div
+                    title="Sin banner: se usará uno predeterminado hasta que subas el tuyo"
+                    className="w-8 h-8 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 flex items-center justify-center text-neutral-400 shrink-0"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </div>
+                )}
               </div>
             </div>
           </div>
