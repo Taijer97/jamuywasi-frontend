@@ -17,8 +17,11 @@ import {
   LogOut,
   UserPlus,
   Home,
-  User
+  User,
+  Headset
 } from 'lucide-react';
+
+const SUPPORT_WHATSAPP_URL = 'https://wa.me/51931834310?text=' + encodeURIComponent('Hola, necesito soporte con JamuyWasi.');
 
 export const Navbar: React.FC = () => {
   const {
@@ -201,7 +204,20 @@ export const Navbar: React.FC = () => {
             ) : (
               /* User Account & Role Indicator */
               <>
-              {(isMerchant || isSuperAdmin) && <NotificationBell />}
+              {(isMerchant || isSuperAdmin) && (
+                <>
+                  <a
+                    href={SUPPORT_WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Soporte por WhatsApp"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl border border-neutral-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-neutral-500 hover:text-emerald-600 transition-colors shrink-0"
+                  >
+                    <Headset className="w-4 h-4" />
+                  </a>
+                  <NotificationBell />
+                </>
+              )}
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
