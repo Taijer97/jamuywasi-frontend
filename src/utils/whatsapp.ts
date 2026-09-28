@@ -253,22 +253,31 @@ export function generateCustomerStatusUpdateWhatsAppLink(
   order: Order,
   newStatus: string
 ): string {
+  const isPickup = order.deliveryType === 'pickup';
+  const pickupPlace = store.pickupAddress || store.address || '';
+
   let message = '';
   switch (newStatus) {
     case 'confirmed':
-      message = `¡Hola ${order.customerName}! 👋 Te confirmamos que hemos recibido tu pago y tu pedido *#${order.orderNumber}* en *${store.name}* está formalmente confirmado. ¡Comenzamos a prepararlo! 📦`;
+      message = `¡Hola ${order.customerName}! 👋 Te confirmamos que hemos recibido tu pago y tu pedido *#${order.orderNumber}* en *${store.name}* está formalmente confirmado. ¡Comenzamos a prepararlo! 📦 ` +
+        (isPickup
+          ? `Es para *retiro en local*${pickupPlace ? ` (${pickupPlace})` : ''}, te avisaremos cuando esté listo.`
+          : `Es para *envío a domicilio* a: ${order.customerAddress}.`);
       break;
     case 'preparing':
-      message = `¡Hola ${order.customerName}! 🛍️ Tu pedido *#${order.orderNumber}* en *${store.name}* ya se encuentra en proceso de empaquetado y preparación. Te avisaremos cuando salga en camino.`;
+      message = `¡Hola ${order.customerName}! 🛍️ Tu pedido *#${order.orderNumber}* en *${store.name}* ya se encuentra en proceso de empaquetado y preparación. ` +
+        (isPickup
+          ? `Es para *retiro en local*${pickupPlace ? ` (${pickupPlace})` : ''}, te avisaremos en cuanto esté listo para recoger. 🏬`
+          : `Es para *envío a domicilio*, te avisaremos cuando salga en camino hacia: ${order.customerAddress}. 🚚`);
       break;
     case 'delivered':
-      message = `¡Hola ${order.customerName}! 🎉 Tu pedido *#${order.orderNumber}* de *${store.name}* ha sido ${order.deliveryType === 'pickup' ? 'entregado para retiro' : 'entregado en tu dirección'}. ¡Muchas gracias por tu compra! Déjanos saber si todo llegó perfecto. ⭐`;
+      message = `¡Hola ${order.customerName}! 🎉 Tu pedido *#${order.orderNumber}* de *${store.name}* ha sido ${isPickup ? `*entregado para retiro*${pickupPlace ? ` en ${pickupPlace}` : ''}` : `*entregado en tu dirección* (${order.customerAddress})`}. ¡Muchas gracias por tu compra! Déjanos saber si todo llegó perfecto. ⭐`;
       break;
     case 'cancelled':
-      message = `Hola ${order.customerName}. Te informamos sobre una actualización en tu pedido *#${order.orderNumber}* de *${store.name}*. Por favor escríbenos si tienes cualquier duda.`;
+      message = `Hola ${order.customerName}. Te informamos que tu pedido *#${order.orderNumber}* de *${store.name}* (${isPickup ? 'retiro en local' : 'envío a domicilio'}) ha sido cancelado. Por favor escríbenos si tienes cualquier duda.`;
       break;
     default:
-      message = `Hola ${order.customerName}, te escribimos de *${store.name}* en relación a tu pedido *#${order.orderNumber}*.`;
+      message = `Hola ${order.customerName}, te escribimos de *${store.name}* en relación a tu pedido *#${order.orderNumber}* (${isPickup ? 'retiro en local' : 'envío a domicilio'}).`;
   }
 
   // Remove non-digit chars from customer phone
