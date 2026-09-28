@@ -297,8 +297,8 @@ export const PaymentConfigTab: React.FC = () => {
                   O ingresa URL directa de la imagen del QR (opcional):
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://.../mi_qr_yape.png (dejar vacío para auto-generar)"
+                  type="text"
+                  placeholder="https://... o ruta /api/uploads/... (dejar vacío para auto-generar)"
                   value={qrUrl}
                   onChange={e => setQrUrl(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-mono text-neutral-700 bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-600"

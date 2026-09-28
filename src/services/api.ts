@@ -46,7 +46,7 @@ export function mergeUserFromBackend(base: UserAccount | undefined, raw: any): U
     status: 'active',
     billingCycle: 'monthly',
     startDate: raw?.created_at || now,
-    currentPeriodEnd: raw?.subscription_period_end || now,
+    currentPeriodEnd: raw?.subscription_period_end || b.subscription?.currentPeriodEnd || '',
     renewsAutomatically: true,
   };
   const merged: any = { ...b, id: raw?.id ?? b.id };
@@ -807,8 +807,8 @@ export const api = {
           planId: data.subscription_plan || 'pro',
           status: data.subscription_status || (data.status === 'pending_approval' ? 'pending_approval' : (data.status === 'suspended' ? 'past_due' : 'active')),
           billingCycle: 'monthly',
-          startDate: new Date().toISOString(),
-          currentPeriodEnd: data.subscription_period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          startDate: data.created_at || new Date().toISOString(),
+          currentPeriodEnd: data.subscription_period_end || '',
           renewsAutomatically: true
         },
         createdAt: data.created_at || new Date().toISOString()
@@ -846,7 +846,7 @@ export const api = {
           status: (u.subscription_status as any) || (u.status === 'pending_approval' ? 'pending_approval' : (u.status === 'suspended' ? 'past_due' : 'active')),
           billingCycle: 'monthly',
           startDate: u.created_at || new Date().toISOString(),
-          currentPeriodEnd: u.subscription_period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          currentPeriodEnd: u.subscription_period_end || '',
           renewsAutomatically: true
         },
         createdAt: u.created_at || new Date().toISOString()
@@ -933,7 +933,7 @@ export const api = {
         status: (u.subscription_status as any) || (u.status === 'pending_approval' ? 'pending_approval' : (u.status === 'suspended' ? 'past_due' : 'active')),
         billingCycle: 'monthly',
         startDate: u.created_at || new Date().toISOString(),
-        currentPeriodEnd: u.subscription_period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        currentPeriodEnd: u.subscription_period_end || '',
         renewsAutomatically: true
       },
       createdAt: u.created_at || new Date().toISOString()
@@ -969,7 +969,7 @@ export const api = {
         status: (u.subscription_status as any) || (u.status === 'pending_approval' ? 'pending_approval' : (u.status === 'suspended' ? 'past_due' : 'active')),
         billingCycle: 'monthly',
         startDate: u.created_at || new Date().toISOString(),
-        currentPeriodEnd: u.subscription_period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        currentPeriodEnd: u.subscription_period_end || '',
         renewsAutomatically: true
       },
       createdAt: u.created_at || new Date().toISOString()

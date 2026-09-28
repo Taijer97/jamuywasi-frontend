@@ -69,7 +69,7 @@ export const UserManagementTab: React.FC = () => {
   // Filtering and search states
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'merchant' | 'superadmin'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending_approval' | 'trial' | 'past_due' | 'canceled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending_approval' | 'expiring_soon' | 'past_due' | 'canceled'>('all');
   const [planFilter, setPlanFilter] = useState<'all' | PlanTier>('all');
 
   // Modal states
@@ -89,7 +89,7 @@ export const UserManagementTab: React.FC = () => {
   const [newStoreId, setNewStoreId] = useState(stores[0]?.id || '');
   const [newPlan, setNewPlan] = useState<PlanTier>('pro');
   const [newBillingCycle, setNewBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [newSubStatus, setNewSubStatus] = useState<'active' | 'trial'>('active');
+  const [newSubStatus, setNewSubStatus] = useState<'active' | 'pending_approval'>('active');
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -132,14 +132,16 @@ export const UserManagementTab: React.FC = () => {
   const activePaidSubscriptions = users.filter(
     u => u.role === 'merchant' && u.subscription?.status === 'active' && u.subscription?.planId !== 'starter'
   ).length;
-  const trialSubscriptions = users.filter(
-    u => u.role === 'merchant' && u.subscription?.status === 'trial'
-  ).length;
-
   const expiringSoonUsers = users.filter(u => {
     if (u.role !== 'merchant') return false;
     const sub = getSubscriptionStatusInfo(u.subscription, u.status);
     return sub.isExpiringSoon && !sub.isExpired && !sub.isPendingApproval;
+  }).length;
+
+  const expiredUsers = users.filter(u => {
+    if (u.role !== 'merchant') return false;
+    const sub = getSubscriptionStatusInfo(u.subscription, u.status);
+    return sub.isExpired && !sub.isPendingApproval;
   }).length;
 
   // Filtered users
@@ -156,8 +158,10 @@ export const UserManagementTab: React.FC = () => {
         if (!uSub.isPendingApproval) return false;
       } else if (statusFilter === 'past_due') {
         if (!uSub.isExpired) return false;
-      } else if (u.subscription?.status !== statusFilter) {
-        return false;
+      } else if (statusFilter === 'canceled') {
+        if (u.subscription?.status !== 'canceled') return false;
+      } else if (statusFilter === 'active') {
+        if (uSub.isExpired || uSub.isPendingApproval || u.subscription?.status === 'canceled') return false;
       }
     }
 
@@ -187,19 +191,20 @@ export const UserManagementTab: React.FC = () => {
 
     const assignedStoreId = newRole === 'superadmin' ? 'all' : (newStoreId || stores[0]?.id || '');
 
+    const isPending = newRole !== 'superadmin' && newSubStatus === 'pending_approval';
     const created = addUser({
       name: newName.trim(),
       email: newEmail.trim(),
       phone: newPhone.trim() || '+51 987 654 321',
       role: newRole,
       storeId: assignedStoreId,
-      status: 'active',
+      status: isPending ? 'pending_approval' : 'active',
       subscription: {
         planId: newRole === 'superadmin' ? 'business' : newPlan,
         status: newRole === 'superadmin' ? 'active' : newSubStatus,
         billingCycle: newBillingCycle,
         startDate: new Date().toISOString(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        currentPeriodEnd: isPending ? '' : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         renewsAutomatically: true
       }
     });
@@ -335,15 +340,20 @@ export const UserManagementTab: React.FC = () => {
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-neutral-500">En Prueba / Seguimiento</span>
-            <div className="text-2xl font-black text-blue-600 mt-1">
-              {trialSubscriptions}
+            <span className="text-xs font-semibold text-neutral-500">Por Vencer / Vencidas</span>
+            <div className="text-2xl font-black text-amber-600 mt-1 flex items-center gap-1.5">
+              <span>{expiringSoonUsers + expiredUsers}</span>
+              {expiringSoonUsers > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                  {expiringSoonUsers} pronto
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-neutral-600 mt-0.5">
-              Suscripciones en periodo de prueba
+              {expiredUsers} vencidas · {pendingApprovalUsers} por autorizar
             </p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
         </div>
@@ -485,8 +495,7 @@ export const UserManagementTab: React.FC = () => {
               <option value="pending_approval">⏳ Pendiente de Autorizar ({pendingApprovalUsers})</option>
               <option value="expiring_soon">⚠️ Por Vencer ({expiringSoonUsers})</option>
               <option value="active">Suscripción Activa</option>
-              <option value="trial">En Prueba (Trial)</option>
-              <option value="past_due">Vencida / Past Due</option>
+              <option value="past_due">Vencida ({expiredUsers})</option>
               <option value="canceled">Cancelada</option>
             </select>
           </div>
@@ -539,7 +548,7 @@ export const UserManagementTab: React.FC = () => {
                     status: (user.status === 'pending_approval' ? 'pending_approval' : (user.status === 'suspended' ? 'past_due' : 'active')),
                     billingCycle: 'monthly',
                     startDate: user.createdAt || new Date().toISOString(),
-                    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    currentPeriodEnd: (user.status === 'pending_approval' ? '' : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()),
                     renewsAutomatically: true
                   };
                   const planConfig = SAAS_PLANS.find(p => p.id === userSub.planId) || SAAS_PLANS[0];
@@ -757,13 +766,7 @@ export const UserManagementTab: React.FC = () => {
                                   <span>{uSubInfo.statusBadgeText}</span>
                                 </span>
                               )}
-                              {!uSubInfo.isPendingApproval && !uSubInfo.isExpired && !uSubInfo.isExpiringSoon && userSub.status === 'trial' && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                                  <Clock className="w-3 h-3 text-blue-600" />
-                                  <span>Prueba</span>
-                                </span>
-                              )}
-                              {!uSubInfo.isPendingApproval && !uSubInfo.isExpired && !uSubInfo.isExpiringSoon && userSub.status === 'active' && (
+                              {!uSubInfo.isPendingApproval && !uSubInfo.isExpired && !uSubInfo.isExpiringSoon && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   <span>Activa</span>
@@ -773,12 +776,17 @@ export const UserManagementTab: React.FC = () => {
                           );
                         })()}
 
-                        {userSub.currentPeriodEnd && (
+                        {(uSubStatusInfo.isPendingApproval || userSub.status === 'pending_approval' || user.status === 'pending_approval') ? (
+                          <div className="text-[10px] text-amber-700 mt-1 flex items-center gap-1 font-semibold">
+                            <Clock className="w-2.5 h-2.5 text-amber-600" />
+                            <span>Sin fecha (Pendiente de plan)</span>
+                          </div>
+                        ) : userSub.currentPeriodEnd ? (
                           <div className="text-[10px] text-neutral-400 mt-1 flex items-center gap-1">
                             <Calendar className="w-2.5 h-2.5" />
                             <span>Vence: {new Date(userSub.currentPeriodEnd).toLocaleDateString('es-PE')}</span>
                           </div>
-                        )}
+                        ) : null}
                       </td>
 
                       {/* Actions */}
@@ -790,8 +798,10 @@ export const UserManagementTab: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 approveUserAccount(user.id);
-                                const currentEnd = new Date(userSub.currentPeriodEnd || Date.now()).getTime();
-                                const newEnd = new Date(Math.max(Date.now(), currentEnd) + 30 * 24 * 60 * 60 * 1000).toISOString();
+                                const isAlreadyActive = userSub.status === 'active' && user.status === 'active';
+                                const currentEnd = isAlreadyActive && userSub.currentPeriodEnd ? new Date(userSub.currentPeriodEnd).getTime() : 0;
+                                const baseTime = currentEnd > Date.now() ? currentEnd : Date.now();
+                                const newEnd = new Date(baseTime + 30 * 24 * 60 * 60 * 1000).toISOString();
                                 updateUserSubscription(user.id, {
                                   status: 'active',
                                   planId: userSub.pendingPlanId || userSub.planId,
@@ -799,7 +809,7 @@ export const UserManagementTab: React.FC = () => {
                                   pendingPlanId: undefined,
                                   pendingAmount: undefined
                                 });
-                                showNotification(`¡Tienda de ${user.name} autorizada y activada con éxito (+30 días acumulados)!`);
+                                showNotification(`¡Tienda de ${user.name} autorizada y activada con éxito (30 días de vigencia)!`);
                               }}
                               className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                               title="Aprobar y habilitar acceso a este comercio"
@@ -1039,8 +1049,8 @@ export const UserManagementTab: React.FC = () => {
                         onChange={e => setNewSubStatus(e.target.value as any)}
                         className="w-full px-3 py-2 rounded-xl border border-neutral-200 bg-white focus:outline-none cursor-pointer"
                       >
-                        <option value="active">Activa Inmediata</option>
-                        <option value="trial">Periodo de Prueba (14 días)</option>
+                        <option value="active">Activa Inmediata (30 días)</option>
+                        <option value="pending_approval">Pendiente de Autorización / Plan</option>
                       </select>
                     </div>
                   </div>
@@ -1278,13 +1288,14 @@ export const UserManagementTab: React.FC = () => {
                       type="button"
                       onClick={() => {
                         const currentEnd = new Date(editingUser.subscription.currentPeriodEnd || Date.now()).getTime();
-                        const newEnd = new Date(Math.max(Date.now(), currentEnd) + 30 * 24 * 60 * 60 * 1000).toISOString();
+                        const baseTime = currentEnd > Date.now() ? currentEnd : Date.now();
+                        const newEnd = new Date(baseTime + 30 * 24 * 60 * 60 * 1000).toISOString();
                         setEditingUser({
                           ...editingUser,
                           subscription: {
                             ...editingUser.subscription,
                             currentPeriodEnd: newEnd,
-                            status: 'active'
+                            status: editingUser.subscription.status === 'canceled' ? 'canceled' : 'active'
                           }
                         });
                       }}
@@ -1297,13 +1308,14 @@ export const UserManagementTab: React.FC = () => {
                       type="button"
                       onClick={() => {
                         const currentEnd = new Date(editingUser.subscription.currentPeriodEnd || Date.now()).getTime();
-                        const newEnd = new Date(Math.max(Date.now(), currentEnd) + 365 * 24 * 60 * 60 * 1000).toISOString();
+                        const baseTime = currentEnd > Date.now() ? currentEnd : Date.now();
+                        const newEnd = new Date(baseTime + 365 * 24 * 60 * 60 * 1000).toISOString();
                         setEditingUser({
                           ...editingUser,
                           subscription: {
                             ...editingUser.subscription,
                             currentPeriodEnd: newEnd,
-                            status: 'active'
+                            status: editingUser.subscription.status === 'canceled' ? 'canceled' : 'active'
                           }
                         });
                       }}
@@ -1337,20 +1349,55 @@ export const UserManagementTab: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-neutral-700 mb-1">
-                      Estado de Pago / Suscripción
+                    <label className="block font-semibold text-neutral-700 mb-1 flex items-center justify-between">
+                      <span>Estado de Pago / Suscripción</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                        editingUser.subscription.status === 'canceled'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-purple-50 text-purple-700 border-purple-200'
+                      }`}>
+                        {editingUser.subscription.status === 'canceled' ? 'Manual: Cancelada' : 'Automático por Fecha'}
+                      </span>
                     </label>
                     <select
-                      value={editingUser.subscription.status}
-                      onChange={e => setEditingUser({
-                        ...editingUser,
-                        subscription: { ...editingUser.subscription, status: e.target.value as any }
-                      })}
+                      value={editingUser.subscription.status === 'canceled' ? 'canceled' : 'auto'}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === 'canceled') {
+                          setEditingUser({
+                            ...editingUser,
+                            subscription: { ...editingUser.subscription, status: 'canceled' }
+                          });
+                        } else {
+                          const endMs = editingUser.subscription.currentPeriodEnd ? new Date(editingUser.subscription.currentPeriodEnd).getTime() : 0;
+                          const isPast = !endMs || endMs <= Date.now();
+                          setEditingUser({
+                            ...editingUser,
+                            subscription: {
+                              ...editingUser.subscription,
+                              status: isPast ? 'past_due' : 'active'
+                            }
+                          });
+                        }
+                      }}
                       className="w-full px-3 py-2 rounded-xl border border-neutral-200 bg-white focus:outline-none cursor-pointer font-semibold"
                     >
-                      <option value="active">Activa (Al día)</option>
-                      <option value="trial">Periodo de Prueba</option>
-                      <option value="past_due">Vencida / Pago Pendiente</option>
+                      <option value="auto">
+                        Automático {(() => {
+                          if (editingUser.status === 'pending_approval' || editingUser.subscription.status === 'pending_approval') {
+                            return '(Pendiente de plan)';
+                          }
+                          const endMs = editingUser.subscription.currentPeriodEnd ? new Date(editingUser.subscription.currentPeriodEnd).getTime() : 0;
+                          if (!endMs || endMs <= Date.now()) {
+                            return '(Vencida / Pago Pendiente)';
+                          }
+                          const days = Math.ceil((endMs - Date.now()) / (1000 * 60 * 60 * 24));
+                          if (days <= 3) {
+                            return `(Por Vencer en ${days} ${days === 1 ? 'día' : 'días'})`;
+                          }
+                          return '(Activa / Al día)';
+                        })()}
+                      </option>
                       <option value="canceled">Cancelada</option>
                     </select>
                   </div>
@@ -1367,11 +1414,22 @@ export const UserManagementTab: React.FC = () => {
                       onChange={e => {
                         if (e.target.value) {
                           const dateObj = new Date(`${e.target.value}T23:59:59.000Z`);
+                          const isPast = dateObj.getTime() <= Date.now();
                           setEditingUser({
                             ...editingUser,
                             subscription: {
                               ...editingUser.subscription,
-                              currentPeriodEnd: dateObj.toISOString()
+                              currentPeriodEnd: dateObj.toISOString(),
+                              status: editingUser.subscription.status === 'canceled' ? 'canceled' : (isPast ? 'past_due' : 'active')
+                            }
+                          });
+                        } else {
+                          setEditingUser({
+                            ...editingUser,
+                            subscription: {
+                              ...editingUser.subscription,
+                              currentPeriodEnd: '',
+                              status: editingUser.subscription.status === 'canceled' ? 'canceled' : 'past_due'
                             }
                           });
                         }

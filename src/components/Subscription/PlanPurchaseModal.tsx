@@ -57,12 +57,13 @@ export const PlanPurchaseModal: React.FC<PlanPurchaseModalProps> = ({
   const yapeActiveQR = yapeConfig?.qrUrl?.trim() || autoQR;
   const yapeInstructions = yapeConfig?.instructions || '';
 
-  const currentEndMs = user?.subscription?.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd).getTime() : 0;
+  const isPending = user?.status === 'pending_approval' || user?.subscription?.status === 'pending_approval';
+  const currentEndMs = (!isPending && user?.subscription?.currentPeriodEnd) ? new Date(user.subscription.currentPeriodEnd).getTime() : 0;
   const nowMs = Date.now();
   const daysRemaining = currentEndMs > nowMs ? Math.ceil((currentEndMs - nowMs) / (1000 * 60 * 60 * 24)) : 0;
   const isCurrentSubActive = Boolean(
-    (user?.subscription?.status === 'active' || user?.subscription?.status === 'trial') &&
-    user?.status !== 'pending_approval' &&
+    user?.subscription?.status === 'active' &&
+    !isPending &&
     daysRemaining > 0
   );
   const canRenewCurrentPlan = !isCurrentSubActive || daysRemaining <= 3;

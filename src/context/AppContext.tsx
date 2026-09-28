@@ -314,7 +314,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const ms = await api.getMyStores();
       setMyStores(ms);
     } catch (err) {
-      console.error('Error al refrescar tiendas:', err);
+      console.error('Error al refrescar tiendas propias:', err);
+    }
+  };
+
+  const refreshStores = async () => {
+    try {
+      const all = await api.getStores(true);
+      if (all && all.length > 0) {
+        setStores(all);
+      }
+    } catch (err) {
+      console.error('Error al refrescar catálogo de tiendas:', err);
     }
   };
 
@@ -1457,7 +1468,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setUsers(prev => prev.map(u => {
       if (u.storeId === currentStore.id || u.id === currentUserId) {
-        const currentEndMs = u.subscription?.currentPeriodEnd ? new Date(u.subscription.currentPeriodEnd).getTime() : 0;
+        const isPreviouslyActive = u.status === 'active' && u.subscription?.status === 'active';
+        const currentEndMs = (isPreviouslyActive && u.subscription?.currentPeriodEnd) ? new Date(u.subscription.currentPeriodEnd).getTime() : 0;
         const baseTime = currentEndMs > Date.now() ? currentEndMs : Date.now();
         const newEnd = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000).toISOString();
         newPeriodEndStr = newEnd;
@@ -1750,11 +1762,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         personalAddress: u.personal_address,
         status: (u.status as any) || 'active',
         subscription: {
-          planId: (u.subscription_plan as PlanTier) || 'pro',
-          status: u.status === 'pending_approval' ? 'pending_approval' : 'active',
+          planId: (u.subscription_plan as PlanTier) || 'starter',
+          status: (u.subscription_status as any) || (u.status === 'pending_approval' ? 'pending_approval' : 'active'),
           billingCycle: 'monthly',
-          startDate: new Date().toISOString(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          startDate: u.created_at || new Date().toISOString(),
+          currentPeriodEnd: u.subscription_period_end || '',
           renewsAutomatically: true
         },
         failedLoginAttempts: u.failed_login_attempts || 0,
@@ -1944,7 +1956,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: 'pending_approval',
           billingCycle: 'monthly',
           startDate: new Date().toISOString(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          currentPeriodEnd: '',
           renewsAutomatically: true
         },
         createdAt: new Date().toISOString()

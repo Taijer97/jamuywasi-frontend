@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { formatPrice } from '../../utils/whatsapp';
 import { getSubscriptionStatusInfo, buildReactivationWhatsAppLink, getAdminWhatsApp } from '../../utils/subscriptionUtils';
+import { printInvoiceA4Document, amountToWordsPE } from '../../utils/invoicePrint';
 
 export const SubscriptionTab: React.FC = () => {
   const {
@@ -98,6 +99,28 @@ export const SubscriptionTab: React.FC = () => {
     } catch {
       return dateStr;
     }
+  };
+
+  const handlePrintInvoice = (invoice: SubscriptionInvoice) => {
+    printInvoiceA4Document({
+      invoiceNumber: invoice.invoice_number,
+      createdAt: formatDateTimePE(invoice.created_at),
+      storeName: invoice.store_name || currentStore?.name || 'Mi Tienda',
+      customerName: invoice.customer_name || user.name,
+      customerDni: invoice.customer_dni || user.dni || undefined,
+      customerEmail: user.email,
+      customerPhone: user.phone || currentStore?.phone || undefined,
+      customerAddress: currentStore?.address || undefined,
+      planName: invoice.plan_name,
+      billingCycle: invoice.billing_cycle,
+      periodStart: formatDatePE(invoice.period_start),
+      periodEnd: formatDatePE(invoice.period_end),
+      paymentMethod: invoice.payment_method,
+      reference: invoice.reference || undefined,
+      amount: invoice.amount,
+      currency: invoice.currency,
+      status: invoice.status
+    });
   };
 
   const currentPlan = SAAS_PLANS.find(p => p.id === user.subscription.planId) || SAAS_PLANS[0];
@@ -218,7 +241,7 @@ export const SubscriptionTab: React.FC = () => {
             <div className="flex items-center gap-4 text-xs text-neutral-400 pt-1">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-                <span>Renovación: {new Date(user.subscription.currentPeriodEnd).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                <span>Renovación: {(user.status === 'pending_approval' || user.subscription.status === 'pending_approval' || !user.subscription.currentPeriodEnd) ? 'Sin fecha (Pendiente de activación)' : new Date(user.subscription.currentPeriodEnd).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
               </div>
               {user.subscription.paymentMethod && (
                 <div className="flex items-center gap-1.5">
@@ -515,19 +538,24 @@ export const SubscriptionTab: React.FC = () => {
 
       {/* Modal de Comprobante Oficial */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/70 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl sm:max-w-3xl rounded-3xl shadow-2xl border border-neutral-200/90 overflow-hidden flex flex-col my-auto max-h-[92vh]">
             {/* Header del modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/50">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/80 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
                   <Receipt className="w-4 h-4" />
                 </span>
                 <div>
-                  <h4 className="text-sm font-extrabold text-neutral-900">
-                    Comprobante de Suscripción Electrónico
-                  </h4>
-                  <p className="text-[11px] text-neutral-500 font-mono">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-extrabold text-neutral-900">
+                      Comprobante de Suscripción Electrónico
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Formato A4
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 font-mono mt-0.5">
                     {selectedInvoice.invoice_number}
                   </p>
                 </div>
@@ -535,100 +563,125 @@ export const SubscriptionTab: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedInvoice(null)}
-                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
+                title="Cerrar ventana"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Contenido imprimible del recibo */}
-            <div className="p-6 overflow-y-auto space-y-6 text-neutral-800 print:p-0">
+            {/* Contenido imprimible del recibo estilo Hoja A4 */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-neutral-800 bg-white">
               {/* Encabezado del Comprobante */}
-              <div className="flex justify-between items-start border-b border-neutral-200 pb-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-neutral-200 pb-6">
                 <div>
-                  <h2 className="text-lg font-black tracking-tight text-neutral-900 flex items-center gap-1.5">
+                  <h2 className="text-2xl font-black tracking-tight text-neutral-900 flex items-center gap-1.5">
                     <span className="text-emerald-700">Jamuy</span>Wasi
                   </h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">Plataforma SaaS de Catálogos Virtuales</p>
-                  <p className="text-[11px] text-neutral-400 mt-1">R.U.C. 20608942183 • Lima, Perú</p>
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide mt-0.5">
+                    Plataforma SaaS de Comercio Digital & Catálogos WhatsApp
+                  </p>
+                  <div className="text-[11px] text-neutral-500 mt-1.5 space-y-0.5">
+                    <p><strong>JAMUYWASI PERÚ</strong> • R.U.C. 20615233731</p>
+                    <p>Jr. Urubamba 432, Atalaya, Ucayali - Perú</p>
+                   
+                  </div>
                 </div>
-                <div className="text-right border border-emerald-200 bg-emerald-50/60 rounded-xl px-4 py-2.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+
+                <div className="text-center sm:text-right border-2 border-emerald-600 bg-emerald-50/40 rounded-2xl p-4 w-full sm:w-64 shrink-0 shadow-2xs">
+                  <p className="text-xs font-extrabold tracking-wider text-neutral-900">
+                    R.U.C. 20615233731
+                  </p>
+                  <p className="text-[11px] font-black uppercase text-white bg-emerald-700 py-1 px-2.5 rounded-md my-1.5 tracking-wide">
                     RECIBO ELECTRÓNICO
                   </p>
-                  <p className="text-sm font-black text-neutral-900 font-mono">
+                  <p className="text-base font-black text-neutral-900 font-mono tracking-wide">
                     {selectedInvoice.invoice_number}
                   </p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">
-                    {formatDateTimePE(selectedInvoice.created_at)}
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Emisión: {formatDateTimePE(selectedInvoice.created_at)}
                   </p>
                 </div>
               </div>
 
               {/* Información del Cliente & Comercio */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-neutral-50 p-4 rounded-xl border border-neutral-200/70 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-neutral-50/80 p-4 rounded-2xl border border-neutral-200/80 text-xs">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-neutral-400 mb-1 tracking-wider">
+                  <p className="text-[10px] uppercase font-black text-emerald-800 mb-2 tracking-wider border-b border-neutral-200 pb-1">
                     Datos del Comercio / Titular
                   </p>
-                  <p className="font-bold text-neutral-900">
-                    {selectedInvoice.store_name || currentStore?.name || 'Mi Tienda'}
-                  </p>
-                  <p className="text-neutral-600 mt-0.5">
-                    Titular: <span className="font-medium text-neutral-800">{selectedInvoice.customer_name || user.name}</span>
-                  </p>
-                  <p className="text-neutral-600">
-                    DNI/RUC: <span className="font-medium text-neutral-800">{selectedInvoice.customer_dni || user.dni || 'No especificado'}</span>
-                  </p>
-                  <p className="text-neutral-600 truncate">
-                    Correo: <span className="font-medium text-neutral-800">{user.email}</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-neutral-400 mb-1 tracking-wider">
-                    Detalles del Pago & Vigencia
-                  </p>
-                  <p className="text-neutral-600">
-                    Método de Pago: <span className="font-bold text-neutral-900">{selectedInvoice.payment_method}</span>
-                  </p>
-                  {selectedInvoice.reference && (
-                    <p className="text-neutral-600">
-                      Referencia: <span className="font-medium text-neutral-800">{selectedInvoice.reference}</span>
+                  <div className="space-y-1">
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">Comercio:</span> <strong className="text-neutral-900">{selectedInvoice.store_name || currentStore?.name || 'Mi Tienda'}</strong>
                     </p>
-                  )}
-                  <p className="text-neutral-600 mt-1">
-                    Vigencia del Servicio:
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">Titular:</span> <span className="font-semibold text-neutral-900">{selectedInvoice.customer_name || user.name}</span>
+                    </p>
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">DNI/RUC:</span> <span className="font-semibold text-neutral-900">{selectedInvoice.customer_dni || user.dni || 'No especificado'}</span>
+                    </p>
+                    <p className="text-neutral-800 truncate">
+                      <span className="text-neutral-500 font-medium">Correo:</span> <span className="font-semibold text-neutral-900">{user.email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase font-black text-emerald-800 mb-2 tracking-wider border-b border-neutral-200 pb-1">
+                    Detalles del Plan & Pago
                   </p>
-                  <p className="font-semibold text-emerald-800 text-[11px]">
-                    {formatDatePE(selectedInvoice.period_start)} al {formatDatePE(selectedInvoice.period_end)}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">Plan SaaS:</span> <strong className="text-neutral-900">Plan {selectedInvoice.plan_name}</strong>
+                    </p>
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">Ciclo:</span> <span className="font-semibold text-neutral-900">{selectedInvoice.billing_cycle === 'annual' ? 'Anual (12 Meses)' : 'Mensual (30 Días)'}</span>
+                    </p>
+                    <p className="text-neutral-800">
+                      <span className="text-neutral-500 font-medium">Método de Pago:</span> <span className="font-bold text-neutral-900">{selectedInvoice.payment_method}</span>
+                    </p>
+                    {selectedInvoice.reference && (
+                      <p className="text-neutral-800">
+                        <span className="text-neutral-500 font-medium">Referencia:</span> <span className="font-semibold text-neutral-900">{selectedInvoice.reference}</span>
+                      </p>
+                    )}
+                    <p className="text-emerald-800 font-bold text-[11px] pt-0.5">
+                      Vigencia: {formatDatePE(selectedInvoice.period_start)} al {formatDatePE(selectedInvoice.period_end)}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Tabla de Conceptos */}
-              <div className="border border-neutral-200 rounded-xl overflow-hidden">
+              <div className="border border-neutral-200 rounded-2xl overflow-hidden shadow-2xs">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-100/70 text-neutral-600 font-bold text-[10px] uppercase">
+                  <thead className="bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="py-2 px-3">Descripción del Servicio</th>
-                      <th className="py-2 px-3 text-center">Ciclo</th>
-                      <th className="py-2 px-3 text-right">Total</th>
+                      <th className="py-2.5 px-3.5 text-center w-12">Item</th>
+                      <th className="py-2.5 px-3.5">Descripción del Servicio</th>
+                      <th className="py-2.5 px-3.5 text-center w-28">Ciclo</th>
+                      <th className="py-2.5 px-3.5 text-center w-16">Cant.</th>
+                      <th className="py-2.5 px-3.5 text-right w-28">Total (PEN)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100 text-xs">
                     <tr>
-                      <td className="py-3 px-3">
-                        <p className="font-bold text-neutral-900">
-                          Suscripción JamuyWasi - Plan {selectedInvoice.plan_name}
+                      <td className="py-3.5 px-3.5 text-center font-bold text-neutral-500">01</td>
+                      <td className="py-3.5 px-3.5">
+                        <p className="font-black text-neutral-900 text-xs">
+                          Suscripción Plataforma JamuyWasi - Plan {selectedInvoice.plan_name}
                         </p>
-                        <p className="text-[11px] text-neutral-500 mt-0.5">
-                          Activación de plataforma multitienda, catálogo WhatsApp, pasarela Yape y soporte.
+                        <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
+                          Activación integral de catálogo digital, conexión directa a WhatsApp, pasarela de cobros Yape/Plin, administración de inventario y variantes, soporte técnico y actualizaciones en la nube.
                         </p>
                       </td>
-                      <td className="py-3 px-3 text-center text-neutral-600 capitalize">
-                        {selectedInvoice.billing_cycle === 'annual' ? 'Anual (12 Meses)' : 'Mensual (30 Días)'}
+                      <td className="py-3.5 px-3.5 text-center text-neutral-600 font-medium">
+                        {selectedInvoice.billing_cycle === 'annual' ? 'Anual' : 'Mensual'}
                       </td>
-                      <td className="py-3 px-3 text-right font-bold text-neutral-900">
+                      <td className="py-3.5 px-3.5 text-center font-bold text-neutral-800">
+                        1
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-neutral-900 font-mono text-sm">
                         {selectedInvoice.amount <= 0 ? 'S/ 0.00' : `S/ ${selectedInvoice.amount.toFixed(2)}`}
                       </td>
                     </tr>
@@ -636,42 +689,65 @@ export const SubscriptionTab: React.FC = () => {
                 </table>
               </div>
 
-              {/* Resumen Total */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-                <div className="text-xs text-neutral-500 text-center sm:text-left">
-                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px]">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Estado: PAGADO & CONFORME
-                  </span>
-                  <p className="text-[10px] text-neutral-400 mt-1">
-                    Comprobante digital sin valor tributario directo emitido conforme a las políticas de JamuyWasi.
+              {/* Bloque de Monto en Letras y Totales */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start pt-1">
+                <div className="sm:col-span-7 space-y-2">
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200/80 text-xs">
+                    <p className="text-[10px] uppercase font-bold text-neutral-400">Importe en Letras:</p>
+                    <p className="font-bold text-neutral-900 uppercase mt-0.5">
+                      {amountToWordsPE(selectedInvoice.amount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-extrabold text-[11px] bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl w-fit">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Estado: PAGADO & CONFORME</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 leading-relaxed">
+                    Comprobante digital administrativo emitido conforme a las políticas del servicio SaaS JamuyWasi. Válido como constancia de activación y vigencia.
                   </p>
                 </div>
-                <div className="text-right shrink-0 bg-neutral-900 text-white px-4 py-2.5 rounded-xl">
-                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Total Abonado</p>
-                  <p className="text-lg font-black text-emerald-400">
-                    {selectedInvoice.amount <= 0 ? 'S/ 0.00' : `S/ ${selectedInvoice.amount.toFixed(2)}`} PEN
-                  </p>
+
+                <div className="sm:col-span-5 bg-neutral-900 text-white p-4 rounded-2xl space-y-1.5 text-right">
+                  <div className="flex justify-between text-xs text-neutral-400">
+                    <span>Operación Gravada:</span>
+                    <span className="font-mono text-white">S/ {(selectedInvoice.amount > 0 ? selectedInvoice.amount / 1.18 : 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-neutral-400">
+                    <span>I.G.V. (18% Incluido):</span>
+                    <span className="font-mono text-white">S/ {(selectedInvoice.amount > 0 ? selectedInvoice.amount - selectedInvoice.amount / 1.18 : 0).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-neutral-800 pt-2 flex justify-between items-baseline">
+                    <span className="text-xs uppercase tracking-wider font-bold text-neutral-300">Total Abonado:</span>
+                    <span className="text-xl font-black text-emerald-400 font-mono">
+                      {selectedInvoice.amount <= 0 ? 'S/ 0.00' : `S/ ${selectedInvoice.amount.toFixed(2)}`} PEN
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Footer con acciones */}
-            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-neutral-100 bg-neutral-50/50">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 text-xs font-bold transition-all shadow-2xs cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5 text-neutral-600" />
-                Imprimir / Guardar PDF
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedInvoice(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition-all cursor-pointer"
-              >
-                Cerrar
-              </button>
+            <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-100 bg-neutral-50/80 shrink-0">
+              <span className="text-[11px] text-neutral-500 hidden sm:inline-block">
+                💡 Al imprimir, el formato se ajusta al 100% de la hoja A4 sin cortar márgenes.
+              </span>
+              <div className="flex items-center gap-2.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => handlePrintInvoice(selectedInvoice)}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir / Guardar PDF (A4)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoice(null)}
+                  className="px-4 py-2.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-100 text-neutral-700 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>

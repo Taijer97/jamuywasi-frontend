@@ -51,3 +51,21 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .notif-highlight { animation: none; background-color: rgb(254 243 199 / 0.7); }
 }
+
+/* Reglas de impresión para A4 y fidelidad de color */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 15mm;
+  }
+  
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+}

@@ -20,7 +20,7 @@ export interface PlanConfig {
 
 export interface Subscription {
   planId: PlanTier;
-  status: 'active' | 'trial' | 'past_due' | 'canceled' | 'pending_approval';
+  status: 'active' | 'past_due' | 'canceled' | 'pending_approval';
   billingCycle: 'monthly' | 'annual';
   startDate: string;
   currentPeriodEnd: string;

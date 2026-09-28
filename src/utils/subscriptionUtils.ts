@@ -71,17 +71,6 @@ export function getSubscriptionStatusInfo(
     };
   }
 
-  if (subscription.status === 'trial') {
-    return {
-      isExpired: false,
-      isExpiringSoon: false,
-      isPendingApproval: false,
-      daysRemaining,
-      statusBadgeText: 'Prueba',
-      statusBadgeColor: 'bg-blue-100 text-blue-800'
-    };
-  }
-
   return {
     isExpired: false,
     isExpiringSoon: false,
@@ -114,7 +103,7 @@ export function buildReactivationWhatsAppLink(
 ): string {
   const cleanPhone = targetPhone.replace(/\D/g, '');
   const message = [
-    '👋 Hola SuperAdministrador, necesito reactivar mi tienda en JamuyWasi.',
+    '👋 Hola Administrador, necesito reactivar mi tienda en JamuyWasi.',
     '',
     `🏪 *Tienda:* ${storeName}`,
     `👤 *Titular:* ${merchantName}`,
