@@ -89,9 +89,15 @@ export const CartDrawer: React.FC = () => {
     return 'delivery';
   });
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState(
-    currentStore.preferredPaymentMethod || 'Transferencia Bancaria'
-  );
+  // Métodos propios de la tienda (nombre + n° de cuenta); si la tienda no configuró ninguno,
+  // se usa el selector genérico de siempre (compatibilidad con tiendas antiguas).
+  const storePaymentMethods = currentStore.paymentMethods || [];
+  const defaultPaymentMethodName = () => {
+    if (storePaymentMethods.length === 0) return currentStore.preferredPaymentMethod || 'Transferencia Bancaria';
+    const preferred = storePaymentMethods.find(m => m.name === currentStore.preferredPaymentMethod);
+    return (preferred || storePaymentMethods[0]).name;
+  };
+  const [paymentMethod, setPaymentMethod] = useState(defaultPaymentMethodName());
   const [notes, setNotes] = useState('');
   const [showWhatsAppPreview, setShowWhatsAppPreview] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -105,12 +111,13 @@ export const CartDrawer: React.FC = () => {
     }
   }, [canDelivery, canPickup, currentStore.id]);
 
-  // Sync preferredPaymentMethod
+  // Sync el método de pago por defecto al cambiar de tienda
   React.useEffect(() => {
-    if (currentStore.preferredPaymentMethod) {
-      setPaymentMethod(currentStore.preferredPaymentMethod);
-    }
-  }, [currentStore.preferredPaymentMethod, currentStore.id]);
+    setPaymentMethod(defaultPaymentMethodName());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStore.id]);
+
+  const selectedPaymentAccount = storePaymentMethods.find(m => m.name === paymentMethod)?.accountNumber;
 
   if (!cartDrawerOpen) return null;
 
@@ -547,7 +554,7 @@ export const CartDrawer: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="block text-[11px] font-medium text-neutral-700">
-                          Método de pago preferido
+                          Método de pago
                         </label>
                         {currentStore.preferredPaymentMethod && (
                           <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -555,23 +562,50 @@ export const CartDrawer: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <select
-                        value={paymentMethod}
-                        onChange={e => setPaymentMethod(e.target.value)}
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors cursor-pointer font-medium"
-                      >
-                        {currentStore.preferredPaymentMethod && (
-                          <option value={currentStore.preferredPaymentMethod}>
-                            ⭐ {currentStore.preferredPaymentMethod} (Preferido por la tienda)
-                          </option>
-                        )}
-                        {['Transferencia Bancaria', 'Yape', 'Plin', 'Efectivo contra entrega', 'Tarjeta de Débito / Crédito (Link de Pago)', 'Pago Móvil / Billetera Digital']
-                          .filter(opt => opt !== currentStore.preferredPaymentMethod)
-                          .map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))
-                        }
-                      </select>
+
+                      {storePaymentMethods.length > 0 ? (
+                        <select
+                          value={paymentMethod}
+                          onChange={e => setPaymentMethod(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors cursor-pointer font-medium"
+                        >
+                          {storePaymentMethods.map(m => (
+                            <option key={m.id} value={m.name}>
+                              {m.name === currentStore.preferredPaymentMethod ? `⭐ ${m.name} (Preferido por la tienda)` : m.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select
+                          value={paymentMethod}
+                          onChange={e => setPaymentMethod(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors cursor-pointer font-medium"
+                        >
+                          {currentStore.preferredPaymentMethod && (
+                            <option value={currentStore.preferredPaymentMethod}>
+                              ⭐ {currentStore.preferredPaymentMethod} (Preferido por la tienda)
+                            </option>
+                          )}
+                          {['Transferencia Bancaria', 'Yape', 'Plin', 'Efectivo contra entrega', 'Tarjeta de Débito / Crédito (Link de Pago)', 'Pago Móvil / Billetera Digital']
+                            .filter(opt => opt !== currentStore.preferredPaymentMethod)
+                            .map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))
+                          }
+                        </select>
+                      )}
+
+                      {selectedPaymentAccount && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-[11px] text-emerald-900 flex items-start gap-2">
+                          <CreditCard className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold block text-emerald-950">Paga a {paymentMethod}:</span>
+                            <p className="text-neutral-800 mt-0.5 font-mono font-bold text-xs select-all">
+                              {selectedPaymentAccount}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       {currentStore.paymentInstructions && (
                         <div className="mt-2 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">

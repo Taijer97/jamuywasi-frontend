@@ -17,10 +17,13 @@ import {
   Sparkles,
   CreditCard,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { generateWhatsAppOrderMessage } from '../../utils/whatsapp';
 import { DEFAULT_STORE_LOGO } from '../../data/initialData';
+import { StorePaymentMethod } from '../../types';
 
 const COUNTRY_CODES = [
   { code: '51', label: 'Perú (+51)' },
@@ -70,7 +73,8 @@ export const StoreSettingsTab: React.FC = () => {
     allowDelivery: currentStore.allowDelivery !== false,
     allowPickup: currentStore.allowPickup !== false,
     pickupAddress: currentStore.pickupAddress || '',
-    preferredPaymentMethod: currentStore.preferredPaymentMethod || 'Transferencia Bancaria'
+    preferredPaymentMethod: currentStore.preferredPaymentMethod || 'Transferencia Bancaria',
+    paymentMethods: currentStore.paymentMethods || []
   }));
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -80,9 +84,33 @@ export const StoreSettingsTab: React.FC = () => {
       allowDelivery: currentStore.allowDelivery !== false,
       allowPickup: currentStore.allowPickup !== false,
       pickupAddress: currentStore.pickupAddress || '',
-      preferredPaymentMethod: currentStore.preferredPaymentMethod || 'Transferencia Bancaria'
+      preferredPaymentMethod: currentStore.preferredPaymentMethod || 'Transferencia Bancaria',
+      paymentMethods: currentStore.paymentMethods || []
     });
   }, [currentStore.id]);
+
+  const handleAddPaymentMethod = () => {
+    const newMethod: StorePaymentMethod = {
+      id: `pm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: '',
+      accountNumber: ''
+    };
+    setForm(prev => ({ ...prev, paymentMethods: [...(prev.paymentMethods || []), newMethod] }));
+  };
+
+  const handleUpdatePaymentMethod = (id: string, field: 'name' | 'accountNumber', value: string) => {
+    setForm(prev => ({
+      ...prev,
+      paymentMethods: (prev.paymentMethods || []).map(m => m.id === id ? { ...m, [field]: value } : m)
+    }));
+  };
+
+  const handleRemovePaymentMethod = (id: string) => {
+    setForm(prev => ({
+      ...prev,
+      paymentMethods: (prev.paymentMethods || []).filter(m => m.id !== id)
+    }));
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -690,26 +718,82 @@ export const StoreSettingsTab: React.FC = () => {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                  Método de Pago Preferido de la Tienda
-                </label>
-                <div className="space-y-2">
-                  <select
-                    value={form.preferredPaymentMethod || 'Transferencia Bancaria'}
-                    onChange={e => setForm({ ...form, preferredPaymentMethod: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer font-bold text-neutral-900"
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700">
+                    Métodos de Pago de la Tienda
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddPaymentMethod}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold border border-emerald-200 transition-colors cursor-pointer"
                   >
-                    <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                    <option value="Yape">Yape</option>
-                    <option value="Plin">Plin</option>
-                    <option value="Efectivo contra entrega">Efectivo contra entrega</option>
-                    <option value="Tarjeta de Débito / Crédito (Link de Pago)">Tarjeta de Débito / Crédito (Link de Pago)</option>
-                    <option value="Pago Móvil / Billetera Digital">Pago Móvil / Billetera Digital</option>
-                  </select>
-                  <p className="text-[11px] text-neutral-500">
-                    Este método de pago aparecerá seleccionado automáticamente cuando tus clientes abran el carrito de compras.
-                  </p>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Añadir método</span>
+                  </button>
                 </div>
+
+                {(!form.paymentMethods || form.paymentMethods.length === 0) ? (
+                  <div className="p-3 rounded-xl border border-dashed border-neutral-300 bg-neutral-50/70 text-center">
+                    <p className="text-[11px] text-neutral-500">
+                      Aún no agregaste ningún método. Ej: <strong>YAPE</strong> (925763903), <strong>BCP</strong> (68746161616496), <strong>Efectivo contra entrega</strong> (sin número).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {form.paymentMethods.map(method => {
+                      const isPreferred = !!method.name && form.preferredPaymentMethod === method.name;
+                      return (
+                        <div
+                          key={method.id}
+                          className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center gap-2 transition-colors ${
+                            isPreferred ? 'border-emerald-400 bg-emerald-50/60' : 'border-neutral-200 bg-white'
+                          }`}
+                        >
+                          <input
+                            type="text"
+                            value={method.name}
+                            onChange={e => handleUpdatePaymentMethod(method.id, 'name', e.target.value)}
+                            placeholder="Nombre (ej. YAPE)"
+                            className="w-full sm:w-40 px-2.5 py-1.5 text-xs rounded-lg border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-semibold"
+                          />
+                          <input
+                            type="text"
+                            value={method.accountNumber || ''}
+                            onChange={e => handleUpdatePaymentMethod(method.id, 'accountNumber', e.target.value)}
+                            placeholder="Número de cuenta / celular (opcional)"
+                            className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                          />
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            <button
+                              type="button"
+                              onClick={() => setForm(prev => ({ ...prev, preferredPaymentMethod: method.name }))}
+                              disabled={!method.name}
+                              title={isPreferred ? 'Es el método predeterminado' : 'Marcar como predeterminado'}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                isPreferred
+                                  ? 'bg-emerald-600 text-white border-emerald-600'
+                                  : 'bg-white text-neutral-500 border-neutral-200 hover:bg-neutral-50'
+                              }`}
+                            >
+                              {isPreferred ? '★ Predeterminado' : '☆ Usar por defecto'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePaymentMethod(method.id)}
+                              title="Eliminar este método de pago"
+                              className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="mt-1.5 text-[11px] text-neutral-500">
+                  Tus clientes elegirán uno de estos métodos en el carrito y verán el número de cuenta exacto para pagar.
+                </p>
               </div>
 
               <div>

@@ -43,6 +43,14 @@ export interface Subscription {
   approvedBy?: string;
 }
 
+export interface StorePaymentMethod {
+  id: string;
+  /** Ej. "YAPE", "BCP", "Efectivo contra entrega" */
+  name: string;
+  /** Ej. "925763903", "68746161616496". Vacío/omitido para métodos sin cuenta (efectivo, etc.) */
+  accountNumber?: string;
+}
+
 export interface StoreConfig {
   id: string;
   name: string;
@@ -64,6 +72,8 @@ export interface StoreConfig {
   pickupAddress?: string;
   preferredPaymentMethod?: string;
   paymentInstructions: string;
+  /** Métodos de pago propios de la tienda (nombre + número de cuenta/celular) */
+  paymentMethods?: StorePaymentMethod[];
   whatsappMessageTemplate: string;
   themeColor: string;
   ruc?: string;

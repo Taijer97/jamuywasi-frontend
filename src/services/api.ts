@@ -100,6 +100,7 @@ export function mapStoreFromBackend(raw: any): StoreConfig {
     pickupAddress: raw.pickup_address || raw.pickupAddress || '',
     preferredPaymentMethod: raw.preferred_payment_method || raw.preferredPaymentMethod || 'Transferencia Bancaria',
     paymentInstructions: raw.payment_instructions || raw.paymentInstructions || '',
+    paymentMethods: raw.payment_methods || raw.paymentMethods || [],
     whatsappMessageTemplate: raw.whatsapp_message_template || raw.whatsappMessageTemplate || '',
     themeColor: raw.theme_color || raw.themeColor || 'emerald',
     isActive: Boolean(raw.is_active ?? raw.isActive ?? true),
@@ -135,6 +136,7 @@ function mapStoreToBackend(store: Partial<StoreConfig>): any {
   if (store.pickupAddress !== undefined) mapped.pickup_address = store.pickupAddress;
   if (store.preferredPaymentMethod !== undefined) mapped.preferred_payment_method = store.preferredPaymentMethod;
   if (store.paymentInstructions !== undefined) mapped.payment_instructions = store.paymentInstructions;
+  if (store.paymentMethods !== undefined) mapped.payment_methods = store.paymentMethods;
   if (store.whatsappMessageTemplate !== undefined) mapped.whatsapp_message_template = store.whatsappMessageTemplate;
   if (store.themeColor !== undefined) mapped.theme_color = store.themeColor;
   if (store.isActive !== undefined) mapped.is_active = store.isActive;
@@ -1233,6 +1235,7 @@ export const api = {
       freeDeliveryThreshold: item.free_delivery_threshold ?? 150.0,
       allowPickup: item.allow_pickup ?? true,
       paymentInstructions: item.payment_instructions || '',
+      paymentMethods: item.payment_methods || [],
       whatsappMessageTemplate: item.whatsapp_message_template || '',
       themeColor: item.theme_color || 'emerald',
       socials: item.socials || {},
