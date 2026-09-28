@@ -11,7 +11,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { currentStore, addToCart, setSelectedProductForModal } = useApp();
+  const { currentStore, addToCart, setSelectedProductForModal, trackProductVisit } = useApp();
 
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
   const discountPercent = hasDiscount
@@ -23,10 +23,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     v.options?.some(opt => typeof opt !== 'string' && typeof opt.price === 'number' && opt.price > 0 && opt.price !== product.price)
   );
 
+  const handleOpenModal = () => {
+    trackProductVisit(product.id);
+    setSelectedProductForModal(product);
+  };
+
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasVariants) {
-      setSelectedProductForModal(product);
+      handleOpenModal();
     } else {
       addToCart(product, 1);
     }
@@ -34,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <div
-      onClick={() => setSelectedProductForModal(product)}
+      onClick={handleOpenModal}
       className="group relative flex flex-col bg-white rounded-2xl border border-neutral-200/80 hover:border-neutral-300 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
     >
       {/* Image container (Regularized & Contained) */}

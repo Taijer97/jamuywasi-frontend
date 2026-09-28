@@ -506,6 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           );
           if (matchedProd) {
             setSelectedProductForModal(matchedProd);
+            trackProductVisit(matchedProd.id);
           }
         }
       }
@@ -594,7 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoadingData(false);
     }
-  }, [setOrders, setStores, setProducts, setBanners, setYapeConfig, setCurrentStoreId, setUsers, setMyStores]);
+  }, [setOrders, setStores, setProducts, setBanners, setYapeConfig, setCurrentStoreId, setUsers, setMyStores, trackProductVisit]);
 
   useEffect(() => {
     loadData();

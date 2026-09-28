@@ -71,7 +71,7 @@ export function useCatalogState({ initialStoreId }: UseCatalogStateParams) {
     }
   };
 
-  const trackProductVisit = (productId: string) => {
+  const trackProductVisit = useCallback((productId: string) => {
     setProducts(prev =>
       prev.map(p => {
         if (p.id === productId) {
@@ -81,7 +81,7 @@ export function useCatalogState({ initialStoreId }: UseCatalogStateParams) {
       })
     );
     api.trackProductVisit(productId);
-  };
+  }, []);
 
   // SuperAdmin Promotional Banner Methods with Backend Integration
   const addBanner = async (bannerData: Omit<PromotionalBanner, 'id' | 'createdAt'>) => {
