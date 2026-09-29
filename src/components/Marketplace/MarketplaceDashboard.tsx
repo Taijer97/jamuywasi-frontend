@@ -298,7 +298,8 @@ export const MarketplaceDashboard: React.FC = () => {
             {/* Toolbar fija (como la barra de filtros): solo se desplazan los productos.
                 El ::before tapa el hueco entre la cabecera y la barra para que no se vean productos pasando. */}
             <div className="sticky top-20 z-20 before:content-[''] before:absolute before:-inset-x-2 before:-top-5 before:h-5 before:bg-neutral-50 bg-white rounded-2xl p-3 sm:p-4 border border-neutral-200/90 shadow-sm space-y-3">
-              <div className="flex items-center justify-between gap-2">
+              {/* Conteo de resultados: oculto en mobile/tablet para priorizar el buscador y los filtros */}
+              <div className="hidden lg:flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-neutral-900">
                   {filteredProducts.length} {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}
                 </span>
