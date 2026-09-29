@@ -94,7 +94,7 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
     }));
   };
 
-  const content = (
+  const renderContent = (showSearch: boolean) => (
     <div className="space-y-6">
       {/* Header and Reset Action */}
       <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
@@ -114,8 +114,9 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
         )}
       </div>
 
-      {/* Búsqueda por texto */}
-      {onSearchChange && (
+      {/* Búsqueda por texto: en mobile/tablet ya está junto al botón "Filtros" en el toolbar,
+          así que aquí solo se muestra en el sidebar de escritorio (showSearch=true). */}
+      {showSearch && onSearchChange && (
         <div className="space-y-2">
           <label htmlFor="filters-search" className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-emerald-600" />
@@ -362,7 +363,7 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
         style={{ position: 'sticky', top: '5rem' }}
       >
         <div className="bg-white rounded-2xl border border-neutral-200/90 p-5 shadow-xs max-h-[calc(100vh-6.5rem)] overflow-y-auto">
-          {content}
+          {renderContent(true)}
         </div>
       </aside>
 
@@ -384,7 +385,7 @@ export const HomeFiltersSidebar: React.FC<HomeFiltersSidebarProps> = ({
                   Cerrar ✕
                 </button>
               </div>
-              {content}
+              {renderContent(false)}
             </div>
 
             <div className="pt-4 border-t border-neutral-200 mt-6">

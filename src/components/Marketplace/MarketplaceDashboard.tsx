@@ -3,13 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { MarketplaceProductCard } from '../Home/MarketplaceProductCard';
 import { HomeFiltersSidebar, FilterState } from '../Home/HomeFiltersSidebar';
 import { useDebounce } from '../../hooks/useDebounce';
-import { 
-  SlidersHorizontal, 
-  Flame, 
+import {
+  SlidersHorizontal,
+  Flame,
   PackageX,
   X,
   Tag,
-  ShoppingBag
+  ShoppingBag,
+  Search
 } from 'lucide-react';
 import { getSubscriptionStatusInfo } from '../../utils/subscriptionUtils';
 
@@ -296,18 +297,30 @@ export const MarketplaceDashboard: React.FC = () => {
           <div className="flex-1 w-full space-y-4 sm:space-y-5">
             {/* Toolbar fija (como la barra de filtros): solo se desplazan los productos.
                 El ::before tapa el hueco entre la cabecera y la barra para que no se vean productos pasando. */}
-            <div className="sticky top-20 z-20 before:content-[''] before:absolute before:-inset-x-2 before:-top-5 before:h-5 before:bg-neutral-50 bg-white rounded-2xl p-3 sm:p-4 border border-neutral-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 sm:gap-3">
+            <div className="sticky top-20 z-20 before:content-[''] before:absolute before:-inset-x-2 before:-top-5 before:h-5 before:bg-neutral-50 bg-white rounded-2xl p-3 sm:p-4 border border-neutral-200/90 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-neutral-900">
                   {filteredProducts.length} {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-                {/* Mobile Filter Button */}
+              {/* Búsqueda + Filtros (mobile/tablet): en desktop el buscador ya está fijo en el sidebar */}
+              <div className="flex items-center gap-2 lg:hidden">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="search"
+                    enterKeyHint="search"
+                    placeholder="Buscar productos..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors [&::-webkit-search-cancel-button]:hidden"
+                  />
+                </div>
+
                 <button
                   onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 text-neutral-800 text-xs font-bold hover:bg-neutral-50 transition-colors cursor-pointer"
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-300 text-neutral-800 text-xs font-bold hover:bg-neutral-50 transition-colors cursor-pointer"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Filtros</span>
@@ -317,9 +330,11 @@ export const MarketplaceDashboard: React.FC = () => {
                     </span>
                   )}
                 </button>
+              </div>
 
-                {/* Sorting Options */}
-                <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-[calc(100vw-130px)] sm:max-w-none">
+              {/* Sorting Options */}
+              <div className="flex items-center justify-end">
+                <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
                   <button
                     onClick={() => setSortBy('views')}
                     className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
