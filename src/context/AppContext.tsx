@@ -170,7 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [marketplaceCategoryFilter, setMarketplaceCategoryFilter] = useState<string>(initialUrlState.category);
   const [marketplaceStoreFilter, setMarketplaceStoreFilter] = useState<string[]>(initialUrlState.filterStores);
   const [merchantTab, setMerchantTab] = useState<'overview' | 'profile' | 'products' | 'orders' | 'reports' | 'settings' | 'subscription'>(initialUrlState.tab);
-  const [adminTab, setAdminTab] = useState<'users' | 'plans' | 'banners' | 'promos' | 'yape_config'>(initialUrlState.adminTab as any);
+  const [adminTab, setAdminTab] = useState<'users' | 'plans' | 'banners' | 'promos' | 'yape_config' | 'visits'>(initialUrlState.adminTab as any);
   const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
 
   // ===================== Slice: Identidad / Cuenta =====================
@@ -765,6 +765,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openStoreCatalog = (storeId: string) => {
+    api.trackStoreVisit(storeId);
     setCurrentStoreId(storeId);
     setViewingStoreCatalog(true);
     setActiveView('catalog');
@@ -779,6 +780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const navigateToStoreProduct = (storeId: string, product: Product) => {
     trackProductVisit(product.id);
+    api.trackStoreVisit(storeId);
     setCurrentStoreId(storeId);
     setViewingStoreCatalog(true);
     setSelectedProductForModal(product);

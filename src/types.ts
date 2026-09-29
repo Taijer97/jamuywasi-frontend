@@ -154,6 +154,31 @@ export interface OrderItem {
 
 export type OrderStatus = 'pending_whatsapp' | 'confirmed' | 'preparing' | 'ready_to_deliver' | 'delivered' | 'cancelled';
 
+export interface VisitTrendPoint {
+  date: string;
+  visits: number;
+}
+
+export interface TopVisitedStore {
+  storeId: string;
+  storeName: string;
+  visits: number;
+}
+
+export interface VisitsDashboard {
+  landing: {
+    total: number;
+    today: number;
+    trend: VisitTrendPoint[];
+  };
+  stores: {
+    total: number;
+    today: number;
+    trend: VisitTrendPoint[];
+    topStores: TopVisitedStore[];
+  };
+}
+
 export interface Order {
   id: string;
   orderNumber: string;

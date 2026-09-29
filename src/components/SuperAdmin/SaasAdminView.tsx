@@ -6,6 +6,7 @@ import { UserManagementTab } from './UserManagementTab';
 import { BannersManagementTab } from './BannersManagementTab';
 import { PromoCodesTab } from './PromoCodesTab';
 import { PaymentConfigTab } from './PaymentConfigTab';
+import { VisitsAnalyticsTab } from './VisitsAnalyticsTab';
 import { ErrorBoundary } from '../Common/ErrorBoundary';
 import {
   ShieldCheck,
@@ -17,7 +18,8 @@ import {
   X,
   Megaphone,
   Tag,
-  QrCode
+  QrCode,
+  Eye
 } from 'lucide-react';
 
 export const SaasAdminView: React.FC = () => {
@@ -191,6 +193,18 @@ export const SaasAdminView: React.FC = () => {
               <QrCode className="w-4 h-4" />
               <span>Cobros & QR Yape</span>
             </button>
+
+            <button
+              onClick={() => setAdminTab('visits')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                adminTab === 'visits'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span>Visitas</span>
+            </button>
           </div>
         </div>
       </div>
@@ -214,6 +228,11 @@ export const SaasAdminView: React.FC = () => {
         {adminTab === 'yape_config' && (
           <ErrorBoundary fallbackTitle="Error en Configuración de Cobros Yape">
             <PaymentConfigTab />
+          </ErrorBoundary>
+        )}
+        {adminTab === 'visits' && (
+          <ErrorBoundary fallbackTitle="Error en Dashboard de Visitas">
+            <VisitsAnalyticsTab />
           </ErrorBoundary>
         )}
 

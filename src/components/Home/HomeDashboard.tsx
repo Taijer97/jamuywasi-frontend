@@ -1,26 +1,32 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CategoryCard } from './CategoryCard';
 import { StoreCard } from './StoreCard';
 import { PromoCarousel } from './PromoCarousel';
-import { 
-  Sparkles, 
-  Store, 
+import {
+  Sparkles,
+  Store,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { getSubscriptionStatusInfo } from '../../utils/subscriptionUtils';
+import { api } from '../../services/api';
 
 export const HomeDashboard: React.FC = () => {
-  const { 
-    products, 
-    stores, 
+  const {
+    products,
+    stores,
     users,
     currentUser,
-    openRegisterModal, 
-    setActiveView, 
-    navigateToMarketplaceWithCategory 
+    openRegisterModal,
+    setActiveView,
+    navigateToMarketplaceWithCategory
   } = useApp();
+
+  // Visita orgánica a la landing (el backend deduplica por IP dentro de una ventana de 12h).
+  useEffect(() => {
+    api.trackLandingVisit();
+  }, []);
 
   // Scroll Snap helpers
   const categoriesScrollRef = useRef<HTMLDivElement>(null);

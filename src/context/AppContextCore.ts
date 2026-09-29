@@ -44,8 +44,8 @@ export interface AppContextType {
   isMerchant: boolean;
   activeView: ActiveView;
   merchantTab: 'overview' | 'profile' | 'products' | 'orders' | 'reports' | 'settings' | 'subscription';
-  adminTab: 'users' | 'plans' | 'banners' | 'promos' | 'yape_config';
-  setAdminTab: (tab: 'users' | 'plans' | 'banners' | 'promos' | 'yape_config') => void;
+  adminTab: 'users' | 'plans' | 'banners' | 'promos' | 'yape_config' | 'visits';
+  setAdminTab: (tab: 'users' | 'plans' | 'banners' | 'promos' | 'yape_config' | 'visits') => void;
   yapeConfig: YapePaymentConfig;
   updateYapeConfig: (config: Partial<YapePaymentConfig>) => Promise<boolean>;
   refreshYapeConfig: () => Promise<void>;

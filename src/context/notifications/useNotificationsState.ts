@@ -3,7 +3,7 @@ import { AppNotification, LiveNotification, ActiveView } from '../../types';
 import { notificationsApi } from '../../services/api';
 
 type MerchantTab = 'overview' | 'profile' | 'products' | 'orders' | 'reports' | 'settings' | 'subscription';
-type AdminTab = 'users' | 'plans' | 'banners' | 'promos' | 'yape_config';
+type AdminTab = 'users' | 'plans' | 'banners' | 'promos' | 'yape_config' | 'visits';
 
 interface UseNotificationsStateParams {
   currentUserId: string;

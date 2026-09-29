@@ -1,4 +1,4 @@
-import { StoreConfig, Product, PromotionalBanner, Order, OrderStatus, UserAccount, UserProfileUpdateData, UserAdminUpdateData, PromoCode, PromoCodeValidationResult, YapeVerifyResult, YapePaymentConfig, SubscriptionInvoice, AppNotification } from '../types';
+import { StoreConfig, Product, PromotionalBanner, Order, OrderStatus, UserAccount, UserProfileUpdateData, UserAdminUpdateData, PromoCode, PromoCodeValidationResult, YapeVerifyResult, YapePaymentConfig, SubscriptionInvoice, AppNotification, VisitsDashboard } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -417,6 +417,31 @@ export const api = {
     } catch {
       // silent
     }
+  },
+
+  // --- Analíticas de visitas (landing + tiendas) ---
+  async trackLandingVisit(): Promise<void> {
+    try {
+      await fetch(`${API_BASE_URL}/analytics/landing-visit`, { method: 'POST' });
+    } catch {
+      // silent
+    }
+  },
+
+  async trackStoreVisit(storeId: string): Promise<void> {
+    try {
+      await fetch(`${API_BASE_URL}/analytics/store-visit/${storeId}`, { method: 'POST' });
+    } catch {
+      // silent
+    }
+  },
+
+  async getVisitsDashboard(days: number = 30): Promise<VisitsDashboard> {
+    const res = await fetch(`${API_BASE_URL}/analytics/dashboard?days=${days}`, {
+      headers: getAuthHeader()
+    });
+    if (!res.ok) throw new Error('Error al obtener el dashboard de visitas');
+    return res.json();
   },
 
   // --- Banners ---
