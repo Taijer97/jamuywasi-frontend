@@ -30,11 +30,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasVariants) {
-      handleOpenModal();
-    } else {
-      addToCart(product, 1);
-    }
+    addToCart(product, 1);
   };
 
   return (
@@ -133,21 +129,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span className="text-[10px] text-neutral-400 font-medium">Cierre en WhatsApp</span>
           </div>
 
-          {/* Action Button */}
-          <button
-            onClick={handleActionClick}
-            disabled={!product.inStock}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
-              !product.inStock
-                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                : hasVariants
-                ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>{hasVariants ? 'Opciones' : 'Agregar'}</span>
-          </button>
+          {/* Action Button: para productos con variantes, el card entero ya abre el detalle */}
+          {!hasVariants && (
+            <button
+              onClick={handleActionClick}
+              disabled={!product.inStock}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0 ${
+                !product.inStock
+                  ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Agregar</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
