@@ -88,7 +88,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
             {product.category}
           </span>
-          <h3 className="mt-1 text-sm font-bold text-neutral-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+          <h3 className="mt-1 text-sm font-bold text-neutral-900 line-clamp-2 group-hover:text-emerald-700 transition-colors">
             {product.name}
           </h3>
           <p className="mt-1 text-xs text-neutral-500 line-clamp-2 leading-relaxed">

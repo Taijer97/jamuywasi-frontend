@@ -123,7 +123,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             </span>
           </div>
 
-          <h3 className="mt-1 sm:mt-1.5 text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
+          <h3 className="mt-1 sm:mt-1.5 text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-emerald-700 transition-colors line-clamp-2">
             {product.name}
           </h3>
 
