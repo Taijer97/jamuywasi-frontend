@@ -127,9 +127,11 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             {product.name}
           </h3>
 
-          <p className="mt-1 text-xs text-neutral-500 line-clamp-2 leading-relaxed hidden sm:block">
-            {product.description}
-          </p>
+          {product.description && (
+            <p className="mt-1 text-[11px] sm:text-xs text-neutral-500 line-clamp-2 leading-relaxed">
+              {product.description}
+            </p>
+          )}
         </div>
 
         {/* Price and Footer Button */}
